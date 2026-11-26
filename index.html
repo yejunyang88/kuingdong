@@ -1,0 +1,3360 @@
+<!doctype html>
+<html lang="ko"><head>
+  
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>여정 — AI 맞춤 여행 플래너</title>
+  <meta name="description" content="사용자의 여행 취향과 조건을 분석해 맞춤 여행지 3곳을 추천하고, 날짜별 세부 코스와 효율적인 이동 경로, 네이버 블로그 후기 탐색까지 제공하는 여행 플래너">
+  <meta property="og:title" content="여정 — AI 맞춤 여행 플래너">
+  <meta property="og:description" content="취향 기반 맞춤 여행지 추천부터 시간대별 코스, 동선 최적화, 후기 검색까지 한 번에 설계하세요.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-canvas: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f1f5f9;
+      --border-hairline: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --ink-primary: #0f172a;
+      --ink-secondary: #475569;
+      --ink-muted: #64748b;
+      --accent-blue: #1d4ed8;
+      --accent-blue-hover: #1e40af;
+      --accent-blue-soft: #eff6ff;
+      --accent-green: #047857;
+      --accent-green-soft: #ecfdf5;
+      --accent-amber: #b45309;
+      --accent-amber-soft: #fffbeb;
+      --accent-red: #b91c1c;
+      --accent-red-soft: #fef2f2;
+      --font-sans: "IBM Plex Sans KR", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      font-family: var(--font-sans);
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg-canvas);
+      color: var(--ink-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1, h2, h3, h4, p {
+      margin: 0;
+    }
+
+    h1, h2, h3 {
+      text-wrap: balance;
+    }
+
+    button, input, textarea, select {
+      font-family: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible {
+      outline: 2px solid var(--accent-blue);
+      outline-offset: 2px;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+      font-family: var(--font-mono);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Top Bar Contract: 3 zones */
+    .topbar {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-hairline);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+      padding: 14px 24px;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+
+    .brand {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--ink-primary);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .topnav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-link {
+      background: none;
+      border: none;
+      padding: 4px 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink-secondary);
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: color 0.15s ease;
+    }
+
+    .nav-link:hover:not(:disabled) {
+      color: var(--ink-primary);
+    }
+
+    .nav-link.active {
+      color: var(--ink-primary);
+      text-decoration: underline;
+      text-underline-offset: 5px;
+    }
+
+    .nav-link:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .btn-outline-sm {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-primary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .btn-outline-sm:hover {
+      background: var(--bg-subtle);
+      border-color: var(--ink-primary);
+    }
+
+    .btn-primary-sm {
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #ffffff;
+      background: var(--ink-primary);
+      border: none;
+      border-radius: var(--radius-md);
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s ease;
+    }
+
+    .btn-primary-sm:hover {
+      background: var(--accent-blue);
+    }
+
+    @media (max-width: 760px) {
+      .topnav {
+        display: none;
+      }
+      .topbar-inner {
+        padding: 12px 16px;
+        gap: 12px;
+      }
+      .container {
+        padding: 0 16px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .topbar-actions {
+        gap: 6px;
+      }
+      .btn-outline-sm, .btn-primary-sm {
+        padding: 7px 10px;
+        font-size: 11px;
+      }
+    }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      background: #0f172a;
+      color: #ffffff;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border-hairline);
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.92;
+    }
+
+    .hero-scrim {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.25) 0%, rgba(15, 23, 42, 0.72) 65%, rgba(15, 23, 42, 0.9) 100%);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 68px 24px 44px;
+    }
+
+    .hero-kicker {
+      font-size: 12px;
+      font-weight: 500;
+      color: #bfdbfe;
+      margin-bottom: 8px;
+    }
+
+    .hero-title {
+      font-size: clamp(1.75rem, 3.4vw, 2.85rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.22;
+      max-width: 680px;
+    }
+
+    .hero-sub {
+      font-size: 15px;
+      color: #e2e8f0;
+      max-width: 560px;
+      margin-top: 12px;
+      line-height: 1.65;
+    }
+
+    /* Main Workspace */
+    main.container {
+      flex: 1;
+      padding-top: 28px;
+      padding-bottom: 48px;
+    }
+
+    .step-strip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 14px;
+      font-size: 12px;
+      color: var(--ink-muted);
+      padding-bottom: 14px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-hairline);
+    }
+
+    .step-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 12px;
+      color: var(--ink-muted);
+      white-space: nowrap;
+    }
+
+    .step-btn.active {
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    .step-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Cards & Forms */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+    }
+
+    @media (max-width: 640px) {
+      .card {
+        padding: 20px;
+      }
+    }
+
+    .stack-lg {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .section-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink-primary);
+    }
+
+    .section-desc {
+      font-size: 13px;
+      color: var(--ink-muted);
+      margin-top: 4px;
+    }
+
+    .count-note {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-blue);
+    }
+
+    /* Interactive Chips / Buttons */
+    .chip-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #334155;
+      background: var(--bg-canvas);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .chip-btn:hover {
+      background: var(--bg-subtle);
+      color: var(--ink-primary);
+    }
+
+    .chip-btn.active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: #ffffff;
+    }
+
+    .chip-btn-dark.active {
+      background: var(--ink-primary);
+      border-color: var(--ink-primary);
+      color: #ffffff;
+    }
+
+    .chip-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .custom-style-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+      max-width: 460px;
+    }
+
+    .input-text, .input-textarea, .input-number, .input-time {
+      padding: 10px 14px;
+      font-size: 14px;
+      color: var(--ink-primary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+      transition: border-color 0.15s ease;
+    }
+
+    .input-text:focus, .input-textarea:focus, .input-number:focus, .input-time:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    .input-text {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .input-textarea {
+      width: 100%;
+      resize: vertical;
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-primary);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s ease;
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .btn-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 28px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      background: var(--accent-blue);
+      border: none;
+      border-radius: var(--radius-md);
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s ease;
+    }
+
+    .btn-cta:hover {
+      background: var(--accent-blue-hover);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 28px;
+    }
+
+    @media (max-width: 900px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .segmented {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--bg-subtle);
+      border-radius: var(--radius-md);
+    }
+
+    .segmented-full {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      width: 100%;
+    }
+
+    .seg-btn {
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-secondary);
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .seg-btn.active {
+      background: var(--bg-surface);
+      color: var(--ink-primary);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+
+    .field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-primary);
+      margin-bottom: 8px;
+    }
+
+    /* Budget Range */
+    .budget-box {
+      padding-top: 20px;
+      border-top: 1px solid var(--bg-subtle);
+    }
+
+    .budget-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .budget-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .budget-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .input-number {
+      width: 92px;
+      padding: 7px 10px;
+      text-align: right;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
+    .range-slider {
+      width: 100%;
+      accent-color: var(--accent-blue);
+      cursor: pointer;
+    }
+
+    .tick-track {
+      position: relative;
+      height: 22px;
+      margin-top: 4px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--ink-muted);
+    }
+
+    .tick-btn {
+      position: absolute;
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--ink-muted);
+      white-space: nowrap;
+    }
+
+    .tick-btn:hover {
+      color: var(--ink-primary);
+    }
+
+    /* Pace Cards */
+    .pace-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 720px) {
+      .pace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .pace-card {
+      text-align: left;
+      padding: 16px;
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+      background: var(--bg-canvas);
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .pace-card.active {
+      background: var(--accent-blue-soft);
+      border-color: var(--accent-blue);
+    }
+
+    .pace-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink-primary);
+    }
+
+    .pace-desc {
+      font-size: 12px;
+      color: var(--ink-muted);
+      margin-top: 4px;
+    }
+
+    .form-footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 8px;
+    }
+
+    .alert-error {
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--accent-red);
+      background: var(--accent-red-soft);
+      border: 1px solid #fecaca;
+      border-radius: var(--radius-md);
+    }
+
+    /* Destination Cards (Step 2) */
+    .rec-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-hairline);
+    }
+
+    .rec-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 1024px) {
+      .rec-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .dest-card {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: border-color 0.15s ease;
+    }
+
+    .dest-card:hover {
+      border-color: var(--border-strong);
+    }
+
+    .dest-media {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      width: 100%;
+      background: #1e293b;
+      overflow: hidden;
+    }
+
+    .dest-media img, .dest-media svg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .dest-media-scrim {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 30%, rgba(15, 23, 42, 0.82) 100%);
+    }
+
+    .dest-media-caption {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      bottom: 16px;
+      color: #ffffff;
+    }
+
+    .dest-region {
+      font-size: 12px;
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+
+    .dest-name {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-top: 2px;
+    }
+
+    .dest-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 22px;
+    }
+
+    .meta-inline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--ink-muted);
+      margin-bottom: 10px;
+    }
+
+    .meta-inline strong {
+      color: var(--ink-primary);
+    }
+
+    .dest-tagline {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink-primary);
+      margin-bottom: 10px;
+      line-height: 1.45;
+    }
+
+    .dest-reason {
+      font-size: 13px;
+      color: var(--ink-secondary);
+      line-height: 1.65;
+      margin-bottom: 16px;
+    }
+
+    .cost-grid {
+      margin-top: auto;
+      padding-top: 14px;
+      border-top: 1px solid var(--bg-subtle);
+      margin-bottom: 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 16px;
+      font-size: 12px;
+    }
+
+    .cost-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--ink-secondary);
+    }
+
+    .btn-select-dest {
+      width: 100%;
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      background: var(--ink-primary);
+      border: none;
+      border-radius: var(--radius-md);
+      transition: background 0.15s ease;
+    }
+
+    .btn-select-dest:hover {
+      background: var(--accent-blue);
+    }
+
+    /* Step 3: Itinerary Workspace */
+    .workspace-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .rebalance-bar {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--bg-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .rebalance-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .stepper {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+      background: var(--bg-canvas);
+    }
+
+    .stepper-btn {
+      padding: 6px 12px;
+      background: none;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink-primary);
+    }
+
+    .stepper-btn:hover:not(:disabled) {
+      background: var(--border-hairline);
+    }
+
+    .stepper-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .stepper-val {
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+
+    .tabs-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .workspace-split {
+      display: grid;
+      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    @media (max-width: 1080px) {
+      .workspace-split {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .sticky-col {
+      position: sticky;
+      top: 76px;
+    }
+
+    @media (max-width: 1080px) {
+      .sticky-col {
+        position: static;
+      }
+    }
+
+    .day-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-lg);
+    }
+
+    .transit-connector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 16px;
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+
+    .transit-line {
+      width: 1px;
+      height: 16px;
+      background: var(--border-strong);
+      margin-left: 10px;
+    }
+
+    .stop-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .stop-card.selected {
+      border-color: var(--accent-blue);
+      background: #f8fbff;
+    }
+
+    .stop-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .pin-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .stop-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      padding: 6px 8px;
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+
+    .icon-btn:hover:not(:disabled) {
+      background: var(--bg-subtle);
+      color: var(--ink-primary);
+    }
+
+    .icon-btn.danger:hover {
+      background: var(--accent-red-soft);
+      color: var(--accent-red);
+    }
+
+    .icon-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .stop-footer {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--bg-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .btn-blog {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-green);
+      background: var(--accent-green-soft);
+      border: 1px solid #a7f3d0;
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-blog:hover {
+      background: #d1fae5;
+    }
+
+    .link-subtle {
+      font-size: 12px;
+      color: var(--ink-muted);
+      text-decoration: none;
+    }
+
+    .link-subtle:hover {
+      color: var(--ink-primary);
+      text-decoration: underline;
+    }
+
+    /* Route Map Panel */
+    .route-svg-wrap {
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+      background: #f8fafc;
+      overflow: hidden;
+    }
+
+    .route-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .route-item-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 10px;
+      text-align: left;
+      background: var(--bg-surface);
+      border: 1px solid var(--bg-subtle);
+      border-radius: var(--radius-md);
+      font-size: 12px;
+    }
+
+    .route-item-btn.active {
+      background: var(--accent-blue-soft);
+      border-color: #93c5fd;
+    }
+
+    .map-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid var(--bg-subtle);
+    }
+
+    .map-link-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: var(--radius-md);
+      white-space: nowrap;
+    }
+
+    /* Checklist & Essentials */
+    .checklist-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    @media (max-width: 560px) {
+      .checklist-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-primary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+    }
+
+    .check-item.done {
+      background: var(--bg-canvas);
+      color: var(--ink-muted);
+      text-decoration: line-through;
+    }
+
+    .check-box {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid var(--border-strong);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .check-item.done .check-box {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: #ffffff;
+    }
+
+    /* Modals & Drawers */
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(15, 23, 42, 0.5);
+      display: flex;
+    }
+
+    .backdrop-center {
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .backdrop-right {
+      justify-content: flex-end;
+    }
+
+    .modal-panel {
+      width: 100%;
+      max-width: 640px;
+      max-height: 88vh;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .drawer-panel {
+      width: 100%;
+      max-width: 500px;
+      height: 100%;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-hairline);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border-hairline);
+    }
+
+    .modal-body {
+      padding: 22px 24px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .notice-green {
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent-green);
+      background: var(--accent-green-soft);
+      border: 1px solid #a7f3d0;
+      border-radius: var(--radius-md);
+    }
+
+    .footer {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-hairline);
+      margin-top: auto;
+    }
+
+    .footer-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+<style>.aistudio-hover-highlight { box-shadow: inset 0 0 0 0.5px white, inset 0 0 0 1.5px rgba(128,128,128,0.6) !important; }.aistudio-active-highlight { outline: 2px solid #87a9ff !important; outline-offset: -2px !important; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.3), inset 0 0 0 0.5px rgba(0,0,0,0.3) !important; }.aistudio-generating-blur { filter: blur(5px) grayscale(100%) brightness(28%) !important; transition: filter 0.3s ease; }#aistudio-focus-mode-tag { position: absolute; display: none; align-items: center; gap: 4px; background: #87a9ff; border-radius: 12px; z-index: 10000; padding: 8px; color: #32302c; font-family: Inter, sans-serif; font-size: 14px; font-style: normal; font-weight: 500; line-height: 21px; pointer-events: none; }#aistudio-hover-mode-tag { position: absolute; display: none; align-items: center; gap: 4px; background: rgba(128,128,128,0.6); border-radius: 12px; z-index: 10000; padding: 8px; color: white; font-family: Inter, sans-serif; font-size: 14px; font-style: normal; font-weight: 500; line-height: 21px; pointer-events: none; }.aistudio-img-icon { display: none; vertical-align: middle; pointer-events: auto; cursor: pointer; }.aistudio-img-icon.visible { display: inline-flex; }#aistudio-focus-mode-tag .aistudio-img-icon { position: relative; width: 26px; height: 26px; background: #32302c; border-radius: 6px; margin: -4px -4px -4px 0; }#aistudio-focus-mode-tag .aistudio-img-icon::before { content: ""; position: absolute; top: 4px; left: 4px; width: 18px; height: 18px; background-color: white; -webkit-mask-image: url("https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/edit_fix_auto/default/24px.svg"); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; mask-image: url("https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/edit_fix_auto/default/24px.svg"); mask-size: contain; mask-repeat: no-repeat; }#aistudio-hover-mode-tag .aistudio-img-icon { position: relative; width: 18px; height: 18px; margin-left: 4px; }#aistudio-hover-mode-tag .aistudio-img-icon::before { content: ""; position: absolute; top: 0; left: 0; width: 18px; height: 18px; background-color: white; -webkit-mask-image: url("https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/edit_fix_auto/default/24px.svg"); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; mask-image: url("https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/edit_fix_auto/default/24px.svg"); mask-size: contain; mask-repeat: no-repeat; }#aistudio-focus-mode-tag .aistudio-img-icon:hover, #aistudio-hover-mode-tag .aistudio-img-icon:hover { background: #424242 !important; }#aistudio-focus-mode-tag .aistudio-img-icon:active, #aistudio-hover-mode-tag .aistudio-img-icon:active { background: #393f51 !important; }</style></head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <button type="button" id="brandBtn" class="brand">여정</button>
+      <nav class="topnav" aria-label="여행 설계 단계">
+        <button type="button" class="nav-link active" data-nav="preferences">취향 설정</button>
+        <button type="button" class="nav-link" data-nav="recommendations" disabled="">추천 여행지</button>
+        <button type="button" class="nav-link" data-nav="itinerary" disabled="">세부 코스</button>
+        <button type="button" class="nav-link" data-nav="essentials" disabled="">여행 정보</button>
+      </nav>
+      <div class="topbar-actions">
+        <button type="button" id="downloadHtmlBtn" class="btn-outline-sm" title="단일 index.html 파일로 저장">index.html 다운로드</button>
+        <button type="button" id="resetTopBtn" class="btn-primary-sm">새 여행 설계</button>
+      </div>
+    </div>
+  </header>
+
+  <section id="heroSection" class="hero">
+    <svg class="hero-bg" viewBox="0 0 1440 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="skyGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0f172a"></stop>
+          <stop offset="55%" stop-color="#1e3a5f"></stop>
+          <stop offset="100%" stop-color="#334155"></stop>
+        </linearGradient>
+        <linearGradient id="sunGlow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.32"></stop>
+          <stop offset="100%" stop-color="#0f172a" stop-opacity="0"></stop>
+        </linearGradient>
+      </defs>
+      <rect width="1440" height="420" fill="url(#skyGrad)"></rect>
+      <circle cx="1080" cy="140" r="220" fill="url(#sunGlow)"></circle>
+      <path d="M0 320 Q 260 250 540 295 T 1060 265 T 1440 285 L 1440 420 L 0 420 Z" fill="#1e293b" opacity="0.7"></path>
+      <path d="M0 355 Q 320 315 680 350 T 1440 330 L 1440 420 L 0 420 Z" fill="#0f172a" opacity="0.85"></path>
+    </svg>
+    <div class="hero-scrim"></div>
+    <div class="hero-content">
+      <p class="hero-kicker">맞춤형 여행 큐레이션 · 동선 최적화 · 블로그 후기 탐색</p>
+      <h1 class="hero-title">당신의 취향이 머무는 곳으로, 빈틈없이 설계하는 여정</h1>
+      <p class="hero-sub">선호하는 여행 스타일을 제한 없이 고르면 어울리는 여행지 3곳을 추천하고, 날짜별 세부 코스와 효율적인 이동 경로까지 한 번에 완성합니다.</p>
+    </div>
+  </section>
+
+  <main class="container" id="workspaceRoot">
+    <div class="step-strip">
+      <button type="button" class="step-btn active" data-step="preferences">01. 취향 및 조건 입력</button>
+      <span aria-hidden="true">/</span>
+      <button type="button" class="step-btn" data-step="recommendations" disabled="">02. 맞춤 여행지 3선</button>
+      <span aria-hidden="true">/</span>
+      <button type="button" class="step-btn" data-step="itinerary" disabled="">03. 날짜별 코스 · 동선 · 후기</button>
+    </div>
+
+    <div id="viewPreferences"></div>
+    <div id="viewRecommendations" class="hidden"></div>
+    <div id="viewItinerary" class="hidden"></div>
+  </main>
+
+  <div id="modalRoot"></div>
+  <div id="drawerRoot"></div>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <strong style="color:#334155;">여정</strong>
+      <span>예상 경비 및 이동 시간은 현지 사정에 따라 달라질 수 있습니다.</span>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      "use strict";
+
+      function capturePristineSource() {
+        try {
+          const clone = document.documentElement.cloneNode(true);
+          ["viewPreferences", "viewRecommendations", "viewItinerary", "modalRoot", "drawerRoot"].forEach((id) => {
+            const el = clone.querySelector("#" + id);
+            if (el) el.innerHTML = "";
+          });
+          const hero = clone.querySelector("#heroSection");
+          if (hero) hero.classList.remove("hidden");
+          clone.querySelectorAll("script").forEach((sc) => {
+            if (!sc.textContent || !sc.textContent.includes("PRESET_STYLES")) {
+              sc.remove();
+            }
+          });
+          return "<!doctype html>\n" + clone.outerHTML;
+        } catch (err) {
+          return "<!doctype html>\n" + document.documentElement.outerHTML;
+        }
+      }
+
+      const PRISTINE_HTML_SNAPSHOT = capturePristineSource();
+
+      const PRESET_STYLES = [
+        "자연경관", "힐링", "맛집", "감성 카페", "쇼핑", "역사",
+        "문화·예술", "액티비티", "야경", "로컬 시장", "온천·스파", "인생샷·출사"
+      ];
+      const QUICK_DEPARTURES = ["서울", "인천", "부산", "대구", "대전", "광주", "제주"];
+      const COMPANIONS = ["혼자", "연인·커플", "친구", "가족(아이 동반)", "부모님 효도", "반려동물 동반"];
+      const TRANSPORTS = ["대중교통(기차·버스·지하철)", "렌터카·자차", "도보 중심", "항공+현지 대중교통", "택시·프라이빗 투어"];
+      const CATEGORY_META = {
+        attraction: { label: "관광지", color: "#1d4ed8", textColor: "#1d4ed8" },
+        restaurant: { label: "맛집", color: "#b45309", textColor: "#b45309" },
+        cafe: { label: "감성 카페", color: "#0f766e", textColor: "#0f766e" },
+        accommodation: { label: "숙박 시설", color: "#4338ca", textColor: "#4338ca" },
+        activity: { label: "액티비티", color: "#047857", textColor: "#047857" }
+      };
+
+      // Curated travel dataset (Domestic + International, 100% Korean descriptions & real coordinates)
+      const DESTINATIONS = [
+        {
+          id: "gyeongju",
+          name: "경주",
+          region: "대한민국 경상북도",
+          scope: "domestic",
+          wiki: "Gyeongju",
+          visual: "heritage",
+          styles: ["역사", "문화·예술", "감성 카페", "야경", "힐링", "인생샷·출사", "맛집"],
+          tagline: "천년의 고도와 트렌디한 한옥 카페가 공존하는 감성 여행지",
+          bestSeason: "봄 · 가을",
+          defaultDays: 3,
+          baseCost: 420000,
+          nearbyCities: ["부산", "대구", "대전"],
+          essentials: {
+            weatherAndClothing: "분지 지형으로 낮과 밤의 일교차가 큽니다. 야간 동궁과 월지 관람을 위해 가벼운 겉옷을 챙기세요.",
+            transitGuide: "KTX 신경주역에서 시내까지 버스 또는 택시로 약 20분 소요됩니다. 황리단길·대릉원 권역은 도보나 공유 자전거 이용이 가장 편리합니다.",
+            budgetTips: "대릉원·첨성대 야외 산책로는 무료 구간이 많으며, 통합 관람권이나 경주 페이를 활용하면 식비·입장료를 아낄 수 있습니다.",
+            culturalAndSafetyTips: ["주말 황리단길은 주차가 혼잡하므로 대중교통·도보 동선을 권장합니다.", "동궁과 월지 야경은 일몰 20분 전 입장이 가장 한적합니다."],
+            packingChecklist: ["편한 운동화", "보조배터리", "가벼운 겉옷", "양산·선글라스", "상비약", "카메라"],
+            emergencyInfo: "경주시 관광안내소(054-779-6989), 응급의료 119, 관광 불편 신고 1330"
+          },
+          stopsPool: [
+            { name: "대릉원 & 천마총", category: "attraction", lat: 35.8376, lng: 129.2116, duration: 75, cost: 3000, desc: "웅장한 신라 고분 사이로 산책로가 이어진 경주 대표 명소입니다.", tip: "목련 포토스팟은 오전 9시~10시 사이가 가장 한가합니다.", addr: "경북 경주시 황남동 31-1", pros: ["고분과 어우러진 탁 트인 산책길", "계절마다 바뀌는 아름다운 사진 명소"], recItems: ["천마총 내부 전시", "목련 포토존"] },
+            { name: "황리단길 한식 다이닝", category: "restaurant", lat: 35.8372, lng: 129.2096, duration: 70, cost: 24000, desc: "한옥을 개조한 공간에서 정갈한 경주 식재료 한상차림을 맛볼 수 있습니다.", tip: "피크 시간(12시~1시) 전후로 테이블링 예약을 추천합니다.", addr: "경북 경주시 포석로 일대", pros: ["한옥 인테리어와 정갈한 플레이팅", "현지 식재료 기반의 깔끔한 맛"], recItems: ["육회 비빔밥", "갈비찜 정식"] },
+            { name: "황남동 한옥 감성 카페", category: "cafe", lat: 35.8364, lng: 129.2088, duration: 60, cost: 13000, desc: "고즈넉한 마당과 기와 지붕 뷰를 바라보며 스페셜티 커피와 디저트를 즐기는 곳입니다.", tip: "야외 평상 좌석은 오후 햇살이 따뜻할 때 인기가 높습니다.", addr: "경북 경주시 첨성로 일대", pros: ["한옥 마당 전망", "수제 디저트와 시그니처 라떼"], recItems: ["흑임자 크림 라떼", "경주 찰보리 디저트"] },
+            { name: "동궁과 월지 (안압지)", category: "attraction", lat: 35.8347, lng: 129.2266, duration: 65, cost: 3000, desc: "신라 왕궁의 별궁 연못에 비치는 야경이 압권인 필수 코스입니다.", tip: "점등 직후 연못 남서쪽 데크에서 반영 사진을 찍어보세요.", addr: "경북 경주시 원화로 102", pros: ["국내 손꼽히는 야경 반영 명소", "평탄한 산책로"], recItems: ["야간 전각 반영 포인트"] },
+            { name: "보문관광단지 한옥 스테이", category: "accommodation", lat: 35.8442, lng: 129.2815, duration: 60, cost: 145000, desc: "조용한 호수 인근에 자리해 휴식과 다음 날 불국사 이동이 편리한 숙소입니다.", tip: "호수 산책로와 인접한 객실을 요청하면 아침 산책이 좋습니다.", addr: "경북 경주시 보문로 일대", pros: ["조용하고 쾌적한 휴식 환경", "불국사·보문호 이동 동선 최적화"], recItems: ["조식 서비스", "정원 테라스"] },
+            { name: "불국사 & 석굴암", category: "attraction", lat: 35.7901, lng: 129.3321, duration: 110, cost: 0, desc: "유네스코 세계문화유산으로 신라 불교 건축의 정수를 만날 수 있습니다.", tip: "이른 오전 방문 시 맑은 공기 속에서 청운교·백운교를 감상할 수 있습니다.", addr: "경북 경주시 불국로 385", pros: ["사계절 아름다운 사찰 풍경", "무료 입장 전환으로 부담 없는 관람"], recItems: ["다보탑과 석가탑", "자하문 전경"] },
+            { name: "교촌 한옥마을 & 월정교", category: "attraction", lat: 35.8294, lng: 129.2179, duration: 75, cost: 5000, desc: "고풍스러운 목조 교량 월정교와 교동 법주, 전통 체험을 함께 둘러보는 코스입니다.", tip: "월정교 아래 징검다리에서 바라보는 누각 구도가 훌륭합니다.", addr: "경북 경주시 교촌길 39-2", pros: ["도보로 연결되는 한옥 마을 동선", "교리김밥 등 먹거리 인접"], recItems: ["월정교 누각 산책", "전통 떡 체험"] },
+            { name: "경주 중앙시장 야시장·로컬 식사", category: "restaurant", lat: 35.8404, lng: 129.2054, duration: 65, cost: 18000, desc: "현지인과 여행자가 함께 찾는 활기찬 전통 시장에서 합리적인 가격에 식사를 즐깁니다.", tip: "소떡소떡, 육전, 국밥 등 다양한 메뉴를 나눠 먹기 좋습니다.", addr: "경북 경주시 금성로 295", pros: ["가성비 훌륭한 먹거리", "현지 시장 특유의 활기"], recItems: ["소고기 육전", "전통 순대국밥"] },
+            { name: "국립경주박물관", category: "attraction", lat: 35.8299, lng: 129.2286, duration: 90, cost: 0, desc: "성덕대왕신종과 신라 금관 등 국보급 유물을 무료로 관람할 수 있는 박물관입니다.", tip: "신라역사관 1실부터 순서대로 관람하면 시대 흐름이 잘 잡힙니다.", addr: "경북 경주시 일정로 186", pros: ["쾌적한 실내 관람", "풍성한 무료 전시"], recItems: ["금관 전시관", "성덕대왕신종"] }
+          ]
+        },
+        {
+          id: "gangneung",
+          name: "강릉",
+          region: "대한민국 강원특별자치도",
+          scope: "domestic",
+          wiki: "Gangneung",
+          visual: "nature",
+          styles: ["자연경관", "감성 카페", "맛집", "힐링", "로컬 시장", "인생샷·출사"],
+          tagline: "에메랄드빛 동해 바다와 스페셜티 커피 향이 어우러진 휴식 여행",
+          bestSeason: "연중 (봄·여름·가을)",
+          defaultDays: 3,
+          baseCost: 390000,
+          nearbyCities: ["서울", "인천"],
+          essentials: {
+            weatherAndClothing: "해안가는 바람이 강해 체감 온도가 낮을 수 있습니다. 바람막이나 가디건을 준비하세요.",
+            transitGuide: "KTX 강릉역 기준 안목해변·경포호수·중앙시장 모두 택시 10~15분 거리로 대중교통·택시 조합이 매우 효율적입니다.",
+            budgetTips: "해변 산책로와 경포호 자전거길은 무료이며, 중앙시장 먹거리와 초당순두부 마을을 조합하면 식비를 알차게 관리할 수 있습니다.",
+            culturalAndSafetyTips: ["주말 안목해변 카페거리는 창가 자리가 빠르게 찹니다.", "바다부채길 등 해안 산책로는 기상 악화 시 통제될 수 있으니 사전 확인하세요."],
+            packingChecklist: ["바람막이", "선글라스", "편한 스니커즈", "보조배터리", "모자", "휴대용 물티슈"],
+            emergencyInfo: "강릉시 종합관광안내소(033-640-4414), 응급 119, 관광안내 1330"
+          },
+          stopsPool: [
+            { name: "경포호수 & 경포해변 산책", category: "attraction", lat: 37.7989, lng: 128.9082, duration: 80, cost: 0, desc: "잔잔한 호수와 드넓은 동해 백사장을 한 번에 거니는 강릉의 핵심 코스입니다.", tip: "해변 송림 숲길은 그늘이 있어 낮에도 걷기 좋습니다.", addr: "강원 강릉시 창해로 514", pros: ["바다와 호수를 동시에 감상", "평탄한 산책로"], recItems: ["경포대 누각", "송림 해변 데크"] },
+            { name: "초당순두부 마을 맛집", category: "restaurant", lat: 37.7905, lng: 128.9136, duration: 60, cost: 16000, desc: "동해 바닷물로 간수한 고소한 초당순두부와 얼큰한 짬뽕순두부를 맛볼 수 있습니다.", tip: "오전 11시 이전 방문 시 대기 시간을 크게 줄일 수 있습니다.", addr: "강원 강릉시 초당순두부길 일대", pros: ["담백하고 깊은 두부 풍미", "든든한 한 끼 식사"], recItems: ["초당순두부 정식", "얼큰 짬뽕순두부"] },
+            { name: "안목해변 커피거리 로스터리", category: "cafe", lat: 37.7726, lng: 128.9472, duration: 75, cost: 14000, desc: "바다를 정면으로 마주한 루프탑과 통창 좌석에서 핸드드립 커피를 즐깁니다.", tip: "2~3층 창가 좌석이 오션뷰 감상에 가장 좋습니다.", addr: "강원 강릉시 창해로 14번길 일대", pros: ["탁 트인 동해 오션뷰", "다양한 스페셜티 원두 선택"], recItems: ["핸드드립 싱글 오리진", "순두부 젤라또"] },
+            { name: "강릉 중앙시장 & 월화거리", category: "restaurant", lat: 37.7541, lng: 128.8989, duration: 85, cost: 22000, desc: "닭강정, 어묵고로케, 메밀전병 등 지역 별미를 한자리에서 즐기는 대표 시장입니다.", tip: "월화거리 야간 조명과 연계해 저녁 시간대 방문을 추천합니다.", addr: "강원 강릉시 금성로 21", pros: ["풍성한 길거리 먹거리", "아케이드 지붕으로 날씨 무관"], recItems: ["배니닭강정", "수제 어묵고로케"] },
+            { name: "강문·경포 오션뷰 호텔", category: "accommodation", lat: 37.7952, lng: 128.9175, duration: 60, cost: 140000, desc: "객실에서 동해 일출을 감상할 수 있는 해변 인접 숙소입니다.", tip: "일출 시간 15분 전에 맞춰 알람을 설정해 두세요.", addr: "강원 강릉시 창해로 일대", pros: ["일출 감상 가능한 해변 위치", "주요 카페·맛집 인접"], recItems: ["오션뷰 발코니", "해변 아침 산책"] },
+            { name: "아르떼뮤지엄 강릉", category: "activity", lat: 37.7916, lng: 128.9022, duration: 90, cost: 17000, desc: "빛과 소리로 꾸며진 몰입형 미디어아트 전시관으로 감각적인 사진 촬영이 가능합니다.", tip: "전시장 내부가 어두우므로 밝은 색 상의가 사진에 잘 나옵니다.", addr: "강원 강릉시 난설헌로 131", pros: ["날씨와 무관한 실내 전시", "화려한 미디어 포토존"], recItems: ["파도 관", "가든 미디어 존"] },
+            { name: "오죽헌 시립박물관", category: "attraction", lat: 37.7793, lng: 128.8794, duration: 70, cost: 3000, desc: "신사임당과 율곡 이이의 숨결이 담긴 대나무 숲과 고택을 둘러봅니다.", tip: "검은 대나무 오죽 숲길에서 차분히 산책하기 좋습니다.", addr: "강원 강릉시 율곡로 3139번길 24", pros: ["고요한 전통 한옥과 대나무숲", "관람 동선이 깔끔함"], recItems: ["몽룡실", "오죽 산책길"] },
+            { name: "테라로사 커피공장 본점", category: "cafe", lat: 37.6961, lng: 128.8919, duration: 75, cost: 15000, desc: "붉은 벽돌 건축미와 깊은 로스팅 철학을 만날 수 있는 국내 대표 스페셜티 카페입니다.", tip: "베이커리류는 오후 늦게 품절되므로 이른 방문을 권장합니다.", addr: "강원 강릉시 구정면 현천길 7", pros: ["웅장한 건축 공간", "수준 높은 커피와 베이커리"], recItems: ["드립 커피", "퀸아망"] }
+          ]
+        },
+        {
+          id: "jeju",
+          name: "제주",
+          region: "대한민국 제주특별자치도",
+          scope: "domestic",
+          wiki: "Jeju Island",
+          visual: "nature",
+          styles: ["자연경관", "힐링", "감성 카페", "맛집", "액티비티", "인생샷·출사"],
+          tagline: "화산섬의 비경과 에메랄드빛 바다, 미식이 가득한 사계절 휴양지",
+          bestSeason: "봄 · 가을",
+          defaultDays: 4,
+          baseCost: 580000,
+          nearbyCities: ["서울", "인천", "부산", "대구", "광주", "제주"],
+          essentials: {
+            weatherAndClothing: "섬 지역 특성상 바람이 불고 날씨가 급변할 수 있습니다. 방풍 재킷과 편한 트레킹화를 추천합니다.",
+            transitGuide: "동부·서부 해안과 중산간 지역 이동이 많아 렌터카 또는 권역별 투어 버스 이용 시 동선이 크게 단축됩니다.",
+            budgetTips: "항공권은 화·수요일 출발이 저렴하며, 오름·해변 등 자연 명소는 대부분 무료로 즐길 수 있습니다.",
+            culturalAndSafetyTips: ["렌터카 이용 시 좁은 돌담길과 5.16도로 커브 구간 서행이 필수입니다.", "유명 음식점은 캐치테이블·테이블링 원격 웨이팅을 미리 확인하세요."],
+            packingChecklist: ["운전면허증(렌트 시)", "바람막이", "자외선 차단제", "편한 운동화", "보조배터리", "우비 또는 접이식 우산"],
+            emergencyInfo: "제주관광정보센터(064-740-6000), 응급 119"
+          },
+          stopsPool: [
+            { name: "성산일출봉 & 광치기해변", category: "attraction", lat: 33.4581, lng: 126.9425, duration: 95, cost: 5000, desc: "유네스코 세계자연유산 분화구와 해안 절벽이 어우러진 제주의 상징입니다.", tip: "무료 구간인 우측 해안 절벽 산책로만 걸어도 전망이 탁월합니다.", addr: "제주 서귀포시 성산읍 일출로 284-12", pros: ["압도적인 화산 분화구 경관", "드넓은 동부 바다 조망"], recItems: ["정상 분화구 전망", "광치기해변 현무암 뷰"] },
+            { name: "성산·구좌 해녀식당 & 갈치요리", category: "restaurant", lat: 33.4628, lng: 126.9125, duration: 70, cost: 28000, desc: "신선한 제주 은갈치 조림과 성게미역국, 전복돌솥밥을 즐길 수 있는 현지 맛집입니다.", tip: "2인 세트 메뉴를 주문하면 구이와 조림을 함께 맛보기 좋습니다.", addr: "제주 서귀포시 성산읍 일대", pros: ["신선한 현지 해산물", "푸짐한 반찬 구성"], recItems: ["통갈치조림", "전복 성게미역국"] },
+            { name: "월정리·세화 오션뷰 카페", category: "cafe", lat: 33.5563, lng: 126.7959, duration: 65, cost: 14000, desc: "투명한 에메랄드빛 바다를 바라보며 당근케이크와 제주 말차 음료를 즐깁니다.", tip: "물때가 간조일 때 모래사장이 넓게 드러나 색감이 더욱 예쁩니다.", addr: "제주 제주시 구좌읍 해맞이해안로 일대", pros: ["동화 같은 바다 색감", "다양한 제주 특산 디저트"], recItems: ["한라봉 에이드", "제주 당근케이크"] },
+            { name: "비자림 숲길 힐링 산책", category: "attraction", lat: 33.4903, lng: 126.8112, duration: 80, cost: 3000, desc: "수령 수백 년 된 비자나무 숲속 송이길을 걸으며 깊은 피톤치드를 마시는 힐링 코스입니다.", tip: "A코스(완만)와 B코스(돌길) 중 취향에 맞게 선택해 걸어보세요.", addr: "제주 제주시 구좌읍 비자숲길 55", pros: ["시원한 숲 그늘", "가볍게 걷기 좋은 산책로"], recItems: ["새천년 비자나무", "연리목"] },
+            { name: "서귀포·애월 감성 스테이", category: "accommodation", lat: 33.2492, lng: 126.4126, duration: 60, cost: 165000, desc: "돌담과 야자수 정원이 어우러진 휴양형 숙소로 편안한 휴식을 제공합니다.", tip: "야외 온수풀이나 조식 포함 여부를 미리 확인하면 만족도가 높습니다.", addr: "제주 서귀포시 중문관광로 일대", pros: ["이국적인 제주 휴양 분위기", "조용한 숙면 환경"], recItems: ["제주 흑돼지 조식", "정원 산책"] },
+            { name: "협재해수욕장 & 한림공원", category: "attraction", lat: 33.3939, lng: 126.2397, duration: 90, cost: 0, desc: "비양도가 눈앞에 펼쳐지는 하얀 패사 해변과 맑은 바다가 일품입니다.", tip: "해 질 무렵 비양도 뒤로 넘어가는 노을이 특히 아름답습니다.", addr: "제주 제주시 한림읍 한림로 329-10", pros: ["얕고 맑은 바다", "비양도 일몰 명소"], recItems: ["비양도 노을 뷰", "해안 산책"] },
+            { name: "제주 흑돼지 숯불구이 전문점", category: "restaurant", lat: 33.4622, lng: 126.3108, duration: 80, cost: 35000, desc: "두툼한 제주 흑돼지를 멜젓과 함께 숯불에 구워 먹는 대표 미식 코스입니다.", tip: "직원이 직접 구워주는 곳을 고르면 가장 알맞은 굽기로 즐길 수 있습니다.", addr: "제주 제주시 애월읍 일대", pros: ["육즙 가득한 숙성 흑돼지", "김치찌개와 곁들임 조화"], recItems: ["숙성 흑돼지 오겹살", "흑돼지 김치찌개"] },
+            { name: "스누피가든 또는 카멜리아힐", category: "activity", lat: 33.4437, lng: 126.7795, duration: 90, cost: 18000, desc: "자연과 어우러진 야외 테마 가든에서 계절 꽃과 포토스팟을 여유롭게 즐깁니다.", tip: "오전 시간대에 방문해야 주요 포토존 대기 줄이 짧습니다.", addr: "제주 제주시 구좌읍 금백조로 930", pros: ["잘 가꿔진 정원 조경", "아이부터 커플까지 모두 만족"], recItems: ["야외 가든 산책", "테마 포토스팟"] }
+          ]
+        },
+        {
+          id: "busan",
+          name: "부산",
+          region: "대한민국 부산광역시",
+          scope: "domestic",
+          wiki: "Busan",
+          visual: "city",
+          styles: ["야경", "맛집", "쇼핑", "감성 카페", "자연경관", "로컬 시장", "액티비티"],
+          tagline: "도시의 야경과 푸른 바다, 골목 미식이 역동적으로 어우러진 항구 도시",
+          bestSeason: "봄 · 여름 · 가을",
+          defaultDays: 3,
+          baseCost: 410000,
+          nearbyCities: ["부산", "대구", "경주"],
+          essentials: {
+            weatherAndClothing: "바닷바람이 불어 저녁 해변 산책 시 가벼운 겉옷이 필요합니다. 언덕 지형이 많아 편한 신발이 좋습니다.",
+            transitGuide: "지하철 1·2호선과 시내버스, 해운대 블루라인파크(해변열차)를 이용하면 주요 명소를 편리하게 연결할 수 있습니다.",
+            budgetTips: "비짓부산패스를 활용하면 해변열차·전망대·케이블카 등 유료 액티비티 비용을 크게 절감할 수 있습니다.",
+            culturalAndSafetyTips: ["해변열차·스카이캡슐은 방문 2~3주 전 온라인 사전 예매가 필수입니다.", "광안리 드론쇼(토요일 저녁) 일정 확인 후 방문하면 좋습니다."],
+            packingChecklist: ["편한 운동화", "보조배터리", "가벼운 겉옷", "선글라스", "교통카드"],
+            emergencyInfo: "부산관광안내소(051-749-5700), 응급 119, 관광안내 1330"
+          },
+          stopsPool: [
+            { name: "해운대 블루라인파크 해변열차", category: "activity", lat: 35.1613, lng: 129.1806, duration: 85, cost: 16000, desc: "미포에서 청사포·송정까지 바다 절벽을 따라 달리는 낭만적인 해변열차입니다.", tip: "미포 정거장 출발 후 청사포 다릿돌 전망대에서 내려 산책하는 코스가 인기입니다.", addr: "부산 해운대구 달맞이길62번길 13", pros: ["열차 안에서 감상하는 탁 트인 바다", "청사포 포토스팟 연계"], recItems: ["스카이캡슐", "청사포 다릿돌전망대"] },
+            { name: "해운대·청사포 조개구이 & 밀면", category: "restaurant", lat: 35.1612, lng: 129.1917, duration: 70, cost: 26000, desc: "바다 앞 식당에서 즐기는 신선한 해산물과 시원한 부산 정통 밀면입니다.", tip: "밀면은 따뜻한 육수와 함께 곁들여 먹는 것이 별미입니다.", addr: "부산 해운대구 청사포로 일대", pros: ["바다 바로 앞 식사 분위기", "신선한 조개·해물"], recItems: ["치즈 조개구이", "물밀면과 수육"] },
+            { name: "영도 흰여울문화마을 오션뷰 카페", category: "cafe", lat: 35.0785, lng: 129.0445, duration: 70, cost: 13000, desc: "절벽 위 흰 골목길과 남항 앞바다가 한눈에 내려다보이는 감성 카페 거리입니다.", tip: "해안터널까지 내려가 바다 산책로를 함께 걸어보세요.", addr: "부산 영도구 흰여울길 일대", pros: ["그리스 산토리니 느낌의 골목 풍경", "해 질 녘 파스텔톤 노을"], recItems: ["바다 뷰 테라스 커피", "해안터널 포토존"] },
+            { name: "광안리 해수욕장 & 광안대교 야경", category: "attraction", lat: 35.1532, lng: 129.1186, duration: 80, cost: 0, desc: "화려한 조명이 켜진 광안대교를 배경으로 산책과 야경을 만끽하는 부산의 밤 명소입니다.", tip: "민락수변공원 방면에서 대교 정면 야경을 감상하기 좋습니다.", addr: "부산 수영구 광안해변로 219", pros: ["압도적인 해상 대교 야경", "주변 펍과 카페 밀집"], recItems: ["야간 대교 전경", "드론 라이트쇼"] },
+            { name: "광안리·해운대 부티크 호텔", category: "accommodation", lat: 35.1558, lng: 129.1205, duration: 60, cost: 145000, desc: "도보로 해변 야경을 즐기고 다음 날 이동이 편리한 해변 인근 숙소입니다.", tip: "고층 시티·오션 하프뷰 객실도 만족도가 매우 높습니다.", addr: "부산 수영구 광안해변로 일대", pros: ["야경 감상 후 도보 귀가", "주변 식당·편의시설 풍부"], recItems: ["바다 전망 창가", "조식 뷔페"] },
+            { name: "국제시장 & 깡통시장 로컬 투어", category: "restaurant", lat: 35.1009, lng: 129.0277, duration: 85, cost: 18000, desc: "비빔당면, 씨앗호떡, 돼지국밥 등 부산 원도심의 정겨운 맛을 체험합니다.", tip: "점심 겸 먹방 투어로 돌면 다양한 메뉴를 맛볼 수 있습니다.", addr: "부산 중구 신창동4가 일대", pros: ["저렴하고 다채로운 길거리 음식", "부산 특유의 활기찬 분위기"], recItems: ["비빔당면", "씨앗호떡", "돼지국밥"] },
+            { name: "감천문화마을", category: "attraction", lat: 35.0975, lng: 129.0106, duration: 85, cost: 2000, desc: "알록달록 계단식 주택이 산비탈을 수놓은 부산의 대표 예술 마을입니다.", tip: "마을 안내센터에서 스탬프 지도를 구입하면 숨은 골목을 찾기 쉽습니다.", addr: "부산 사하구 감내2로 203", pros: ["동화 같은 파스텔톤 마을 전경", "아기자기한 공방과 기념품"], recItems: ["어린왕자 포토존", "하늘마루 전망대"] }
+          ]
+        },
+        {
+          id: "yeosu",
+          name: "여수",
+          region: "대한민국 전라남도",
+          scope: "domestic",
+          wiki: "Yeosu",
+          visual: "nature",
+          styles: ["야경", "맛집", "자연경관", "힐링", "액티비티", "감성 카페"],
+          tagline: "낭만적인 밤바다와 다도해의 섬 풍경, 남도 미식이 어우러진 여행지",
+          bestSeason: "봄 · 가을",
+          defaultDays: 3,
+          baseCost: 400000,
+          nearbyCities: ["광주", "대전", "서울"],
+          essentials: {
+            weatherAndClothing: "해상 케이블카와 바닷가 산책 시 바람이 불 수 있어 얇은 바람막이를 챙기세요.",
+            transitGuide: "KTX 여수엑스포역에서 오동도·해상케이블카·낭만포차 권역이 10분 내외로 매우 가깝습니다.",
+            budgetTips: "케이블카는 편도만 탑승해 돌산공원 야경을 본 뒤 버스로 이동하거나, 크리스탈 캐빈 대신 일반 캐빈으로 예산을 절약할 수 있습니다.",
+            culturalAndSafetyTips: ["돌산대교 일대 저녁 시간 교통 정체가 잦으니 도보·택시를 섞어 이동하세요."],
+            packingChecklist: ["가벼운 바람막이", "편한 신발", "보조배터리", "카메라"],
+            emergencyInfo: "여수시 관광안내소(061-659-5741), 응급 119"
+          },
+          stopsPool: [
+            { name: "오동도 동백숲 산책", category: "attraction", lat: 34.7453, lng: 127.7675, duration: 85, cost: 0, desc: "방파제를 따라 들어가 울창한 동백나무 숲과 기암절벽을 감상하는 섬 공원입니다.", tip: "입구에서 동백열차를 타고 들어가 걸어 나오면 체력을 아낄 수 있습니다.", addr: "전남 여수시 오동도로 222", pros: ["시원한 숲과 바다 절벽의 조화", "무료 입장"], recItems: ["용굴 전망대", "오동도 등대"] },
+            { name: "여수 낭만 게장·서대회 정식", category: "restaurant", lat: 34.7418, lng: 127.7362, duration: 65, cost: 22000, desc: "여수 명물 돌게장과 새콤달콤한 서대회무침으로 남도 손맛을 경험합니다.", tip: "갈치조림과 게장이 함께 나오는 백반 코스가 가성비가 뛰어납니다.", addr: "전남 여수시 봉산남4길 일대", pros: ["밥도둑 간장·양념 게장", "풍성한 남도 반찬"], recItems: ["간장게장 백반", "서대회무침"] },
+            { name: "고소동 천사벽화마을 카페", category: "cafe", lat: 34.7416, lng: 127.7429, duration: 65, cost: 13000, desc: "거북선대교와 여수 앞바다가 한눈에 들어오는 언덕 위 전망 카페입니다.", tip: "해 질 녘 방문하면 노을과 대교 점등을 동시에 볼 수 있습니다.", addr: "전남 여수시 고소3길 일대", pros: ["여수 항구 파노라마 전망", "아기자기한 벽화 골목"], recItems: ["여수 쑥 라떼", "루프탑 테라스"] },
+            { name: "여수 해상케이블카 & 돌산공원 야경", category: "activity", lat: 34.7315, lng: 127.7438, duration: 80, cost: 17000, desc: "바다 위를 가로지르며 여수 밤바다와 돌산대교 불빛을 내려다보는 대표 액티비티입니다.", tip: "일몰 30분 전 탑승 시 노을과 야경을 한 번에 감상합니다.", addr: "전남 여수시 돌산읍 돌산로 3600-1", pros: ["발아래로 펼쳐지는 바다 야경", "돌산공원 산책 연계"], recItems: ["노을 시간대 탑승", "돌산공원 포토존"] },
+            { name: "여수 오션뷰 리조트/호텔", category: "accommodation", lat: 34.7465, lng: 127.7521, duration: 60, cost: 145000, desc: "여수 엑스포역과 낭만포차 거리에 인접한 바다 전망 숙소입니다.", tip: "항구 쪽 객실을 고르면 밤바다 불빛을 방에서 즐길 수 있습니다.", addr: "전남 여수시 오동도로 일대", pros: ["핵심 관광지 도보/차량 5분 거리", "깔끔한 바다 뷰"], recItems: ["오션뷰 테라스", "조식"] },
+            { name: "이순신광장 & 여수 낭만포차거리", category: "restaurant", lat: 34.7393, lng: 127.7347, duration: 80, cost: 28000, desc: "거북선 모형 광장을 둘러본 뒤 바다를 바라보며 해물삼합을 즐기는 저녁 코스입니다.", tip: "이순신 수제버거와 여수당 쑥아이스크림도 근처에서 간식으로 좋습니다.", addr: "전남 여수시 종화동 해변공원 일대", pros: ["여수 밤바다 감성 만끽", "해물삼합과 지역 주류"], recItems: ["돌문어 해물삼합", "여수 밤바다"] }
+          ]
+        },
+        {
+          id: "jeonju",
+          name: "전주",
+          region: "대한민국 전라북도",
+          scope: "domestic",
+          wiki: "Jeonju",
+          visual: "heritage",
+          styles: ["맛집", "역사", "문화·예술", "감성 카페", "힐링", "로컬 시장"],
+          tagline: "700여 채 한옥의 고즈넉함과 세계가 인정한 한식 미식의 본고장",
+          bestSeason: "봄 · 가을",
+          defaultDays: 2,
+          baseCost: 280000,
+          nearbyCities: ["대전", "광주", "서울"],
+          essentials: {
+            weatherAndClothing: "한옥마을 내부는 도보 이동 위주이므로 발이 편한 신발을 착용하세요.",
+            transitGuide: "KTX 전주역에서 한옥마을까지 버스·택시로 15분 거리입니다. 마을 내부는 걸어서 대부분 이동 가능합니다.",
+            budgetTips: "한옥마을 산책과 경기전 주변 골목 투어는 부담이 적고, 남부시장 야시장은 가성비 좋은 저녁 코스입니다.",
+            culturalAndSafetyTips: ["주말 낮에는 한복 대여 인파가 많으니 오전 일찍 경기전과 오목대를 둘러보세요."],
+            packingChecklist: ["편한 단화/운동화", "보조배터리", "가벼운 에코백"],
+            emergencyInfo: "전주한옥마을 관광안내소(063-282-1330), 응급 119"
+          },
+          stopsPool: [
+            { name: "경기전 & 어진박물관", category: "attraction", lat: 35.8152, lng: 127.1499, duration: 75, cost: 3000, desc: "조선 태조 이성계의 어진이 모셔진 곳으로 대나무 숲과 고목이 어우러진 명소입니다.", tip: "입구 대나무 숲길은 한복·평상복 모두 사진이 잘 나오는 포토존입니다.", addr: "전북 전주시 완산구 태조로 44", pros: ["잘 보존된 전통 전각과 숲길", "차분하고 고풍스러운 분위기"], recItems: ["대나무 숲길", "어진박물관"] },
+            { name: "전주 비빔밥 & 콩나물국밥 맛집", category: "restaurant", lat: 35.8147, lng: 127.1526, duration: 65, cost: 16000, desc: "진한 사골 육수로 지은 밥에 신선한 나물을 얹은 전주 정통 비빔밥과 콩나물국밥입니다.", tip: "모주 한 잔을 곁들이면 전주 특유의 풍미를 더 잘 느낄 수 있습니다.", addr: "전북 전주시 완산구 팔달로 일대", pros: ["풍부한 반찬과 정통 한식", "든든하고 건강한 식사"], recItems: ["전주 육회비빔밥", "남부시장식 콩나물국밥"] },
+            { name: "전주 한옥뷰 다실·감성 카페", category: "cafe", lat: 35.8134, lng: 127.1537, duration: 65, cost: 12000, desc: "기와 지붕이 내려다보이는 2층 한옥 카페에서 쌍화차 또는 핸드드립을 즐깁니다.", tip: "전망 좋은 2층 테라스 자리에서 한옥마을 지붕선을 감상해보세요.", addr: "전북 전주시 완산구 은행로 일대", pros: ["한옥 지붕 파노라마 뷰", "전통차와 현대 디저트 조화"], recItems: ["가래떡 구이", "대추·쌍화차"] },
+            { name: "오목대 & 자만벽화마을", category: "attraction", lat: 35.8136, lng: 127.1565, duration: 70, cost: 0, desc: "한옥마을 전체를 내려다볼 수 있는 언덕 전망대와 아기자기한 벽화 골목입니다.", tip: "해 질 무렵 오목대에 오르면 한옥마을에 불빛이 들어오는 풍경이 아름답습니다.", addr: "전북 전주시 완산구 기린대로 55", pros: ["한옥마을 최고의 무료 전망대", "가볍게 오를 수 있는 나무 데크"], recItems: ["오목대 정자 전망", "자만벽화마을 골목"] },
+            { name: "전주 한옥 스테이", category: "accommodation", lat: 35.8159, lng: 127.1544, duration: 60, cost: 120000, desc: "뜨끈한 온돌방과 대청마루의 정취를 직접 체험할 수 있는 전통 한옥 숙소입니다.", tip: "아침에 제공되는 정갈한 한식 또는 간편 조식 여부를 확인하세요.", addr: "전북 전주시 완산구 향교길 일대", pros: ["한옥마을 한가운데 편리한 위치", "아늑한 온돌 숙면"], recItems: ["마당 야경", "한옥 마루 휴식"] },
+            { name: "전주 남부시장 & 청년몰", category: "restaurant", lat: 35.8122, lng: 127.1476, duration: 75, cost: 15000, desc: "순대국밥, 피순대, 야시장 먹거리와 개성 있는 청년 상점이 모인 전통 시장입니다.", tip: "금·토요일 저녁에는 남부시장 야시장이 열려 더욱 활기찹니다.", addr: "전북 전주시 완산구 풍남문1길 19-3", pros: ["합리적 가격의 로컬 미식", "청년몰 감성 샵 구경"], recItems: ["피순대 국밥", "청년몰 수제 간식"] }
+          ]
+        },
+        {
+          id: "tokyo",
+          name: "도쿄",
+          region: "일본 간토",
+          scope: "international",
+          wiki: "Tokyo",
+          visual: "city",
+          styles: ["쇼핑", "맛집", "야경", "감성 카페", "문화·예술", "인생샷·출사"],
+          tagline: "전통 신사와 최첨단 빌딩, 골목 카페와 미식이 끝없이 펼쳐지는 메트로폴리스",
+          bestSeason: "봄(벚꽃) · 가을(단풍)",
+          defaultDays: 4,
+          baseCost: 1150000,
+          nearbyCities: ["서울", "인천", "부산"],
+          essentials: {
+            weatherAndClothing: "도쿄는 한국 서울과 기온이 비슷하거나 약간 온화하지만 도보 이동량이 매우 많으므로 쿠션감 좋은 운동화가 필수입니다.",
+            transitGuide: "나리타/하네다 공항에서 스카이라이너·리무진으로 도심 진입 후, 도쿄 메트로 패스(24/48/72시간) 또는 모바일 스이카/파스모를 사용하면 환승이 간편합니다.",
+            budgetTips: "편의점 간편식·규동·라멘과 미슐랭 급 레스토랑을 적절히 섞어 식비를 조절하고, 돈키호테·백화점 면세(5,500엔 이상) 시 여권을 반드시 지참하세요.",
+            culturalAndSafetyTips: ["실내·지하철에서는 통화를 삼가고 에스컬레이터는 왼쪽(도쿄 기준)에 서서 이용합니다.", "현금만 받는 소규모 노포 식당이 있어 소액 엔화를 함께 준비하세요."],
+            packingChecklist: ["여권(유효기간 6개월 이상)", "110V 돼지코 어댑터", "편한 워킹화", "트래블카드 & 엔화 소액권", "이심(eSIM) 또는 포켓와이파이", "동전지갑"],
+            emergencyInfo: "주일 대한민국 대사관(+81-3-3452-7611), 일본 경찰 110, 구급 119"
+          },
+          stopsPool: [
+            { name: "센소지 & 나카미세도리", category: "attraction", lat: 35.7148, lng: 139.7967, duration: 85, cost: 0, desc: "도쿄에서 가장 오래된 사찰로 거대한 가미나리몬 등불과 전통 상점가가 인상적입니다.", tip: "인파가 몰리기 전 오전 9시 이전 방문 시 사진 촬영이 훨씬 여유롭습니다.", addr: "도쿄도 다이토구 아사쿠사 2-3-1", pros: ["일본 전통 사찰과 먹거리 동시 체험", "무료 관람"], recItems: ["가미나리몬 인증샷", "아게만주(튀김만주)"] },
+            { name: "아사쿠사·긴자 정통 돈카츠/스시 맛집", category: "restaurant", lat: 35.7115, lng: 139.7955, duration: 65, cost: 28000, desc: "바삭한 수제 돈카츠 또는 신선한 제철 스시를 현지 분위기 속에서 즐길 수 있습니다.", tip: "오픈 시간 20분 전 도착하면 1차 입장이 수월합니다.", addr: "도쿄도 다이토구 아사쿠사 일대", pros: ["깊은 장인정신의 현지 맛", "점심 런치 세트 가성비 우수"], recItems: ["로스카츠 정식", "오마카세 런치"] },
+            { name: "기요스미시라카와 스페셜티 카페", category: "cafe", lat: 35.6806, lng: 139.8007, duration: 65, cost: 13000, desc: "도쿄 스페셜티 커피의 성지로 불리는 조용한 주택가 골목 로스터리 카페입니다.", tip: "블루보틀 1호점 외에도 아라비카·로컬 로스터리가 걸어서 5분 거리입니다.", addr: "도쿄도 고토구 히라노 1-4-8", pros: ["한적하고 세련된 감성 거리", "최상급 핸드드립 커피"], recItems: ["싱글 오리진 드립", "시즌 페이스트리"] },
+            { name: "시부야 스카이 전망대 야경", category: "attraction", lat: 35.6585, lng: 139.7022, duration: 80, cost: 24000, desc: "지상 229m 야외 루프탑에서 도쿄 타워와 스크램블 교차로 야경을 360도로 조망합니다.", tip: "일몰 시간대 티켓은 최소 3~4주 전 공식 사이트 사전 예매가 필수입니다.", addr: "도쿄도 시부야구 시부야 2-24-12", pros: ["도쿄 최고의 파노라마 야경", "역 직결 접근성"], recItems: ["루프탑 코너 포토존", "일몰~야경 전환 타임"] },
+            { name: "신주쿠·시부야 역세권 호텔", category: "accommodation", lat: 35.6938, lng: 139.7034, duration: 60, cost: 220000, desc: "야마노테선 역에서 도보 5분 내외로 어느 지역으로든 이동하기 편리한 도심 숙소입니다.", tip: "짐 보관 서비스와 코인 세탁기 유무를 확인하면 편리합니다.", addr: "도쿄도 신주쿠구 가부키초 일대", pros: ["대중교통 환승 최적", "밤늦게까지 안전한 주변 상권"], recItems: ["도심 야경 객실", "편의점 인접"] },
+            { name: "오모테산도 & 하라주쿠 쇼핑 산책", category: "activity", lat: 35.6654, lng: 139.7125, duration: 100, cost: 35000, desc: "명품 플래그십 스토어, 디자이너 편집숍, 감각적인 골목 캣스트리트를 탐방합니다.", tip: "골목 안쪽 캣스트리트에는 개성 있는 빈티지·스트리트 브랜드가 많습니다.", addr: "도쿄도 시부야구 진구마에 일대", pros: ["건축미가 뛰어난 상점 거리", "최신 패션·리빙 트렌드 확인"], recItems: ["캣스트리트 편집숍", "메이지진구 숲길"] },
+            { name: "신주쿠 오모이데요코초 야키토리 골목", category: "restaurant", lat: 35.6929, lng: 139.6996, duration: 75, cost: 32000, desc: "레트로한 등불 아래에서 숯불 꼬치구이(야키토리)와 생맥주로 하루를 마무리합니다.", tip: "자릿세(오토시) 문화가 있으니 주문 전 메뉴판을 가볍게 확인하세요.", addr: "도쿄도 신주쿠구 니시신주쿠 1-2", pros: ["일본 현지 감성 가득한 밤 분위기", "가볍게 한잔하기 좋은 꼬치 요리"], recItems: ["모둠 야키토리", "하이볼"] },
+            { name: "아자부다이 힐즈 & 도쿄 타워 산책", category: "attraction", lat: 35.6606, lng: 139.7402, duration: 85, cost: 0, desc: "도쿄의 새로운 랜드마크 복합단지와 붉은 도쿄 타워가 어우러진 포토 스팟입니다.", tip: "시바공원 방면으로 걸어가면 도쿄 타워 전신을 배경으로 사진 찍기 좋습니다.", addr: "도쿄도 미나토구 아자부다이 1", pros: ["세련된 최신 건축물", "도쿄 타워 근접 전망"], recItems: ["중앙 광장 산책", "시바공원 타워 뷰"] }
+          ]
+        },
+        {
+          id: "kyoto",
+          name: "교토",
+          region: "일본 간사이",
+          scope: "international",
+          wiki: "Kyoto",
+          visual: "heritage",
+          styles: ["역사", "자연경관", "힐링", "감성 카페", "문화·예술", "인생샷·출사"],
+          tagline: "천년 고도의 사찰과 대나무 숲, 고요한 다실이 마음을 채우는 문화 여행",
+          bestSeason: "봄(벚꽃) · 가을(단풍)",
+          defaultDays: 4,
+          baseCost: 1100000,
+          nearbyCities: ["서울", "인천", "부산"],
+          essentials: {
+            weatherAndClothing: "사찰과 정원은 야외가 많고 돌계단이 이어지므로 벗고 신기 편한 운동화가 좋습니다(법당 입장 시 신발 탈의).",
+            transitGuide: "간사이 공항에서 하루카 특급열차로 교토역까지 약 75분 소요되며, 시내에서는 지하철+버스 또는 게이한/한큐 전철을 활용하세요.",
+            budgetTips: "기온·아라시야마·후시미이나리 신사는 무료 입장이 가능해 입장료 부담이 적고, 가모강 산책과 로컬 우동집을 활용하면 합리적입니다.",
+            culturalAndSafetyTips: ["기온 사유지 골목에서는 주민 프라이버시를 위해 무단 촬영 금지 구역을 꼭 지켜주세요.", "인기 명소는 오전 8시 이전 방문 시 여유롭게 감상할 수 있습니다."],
+            packingChecklist: ["여권", "110V 멀티어댑터", "편한 신발(양말 필수)", "동전지갑 및 현금", "이코카 카드", "보조배터리"],
+            emergencyInfo: "주오사카 대한민국 총영사관(+81-6-4256-2345), 긴급 110/119"
+          },
+          stopsPool: [
+            { name: "후시미이나리 신사 (천 개의 토리이)", category: "attraction", lat: 34.9671, lng: 135.7727, duration: 85, cost: 0, desc: "끝없이 이어지는 주황빛 토리이 터널이 장관을 이루는 교토의 대표 명소입니다.", tip: "24시간 개방이므로 오전 7~8시 방문 시 사람 없는 토리이 길을 걸을 수 있습니다.", addr: "교토부 교토시 후시미구 후카쿠사 야부노우치초 68", pros: ["강렬한 주황색 토리이 경관", "무료 입장 및 연중무휴"], recItems: ["센본토리이 터널", "요쓰쓰지 전망대"] },
+            { name: "기요미즈데라(청수사) & 니넨자카", category: "attraction", lat: 34.9949, lng: 135.785, duration: 100, cost: 5000, desc: "절벽 위 목조 본당에서 교토 시내가 내려다보이며 전통 목조 가옥 거리가 이어집니다.", tip: "산넨자카·니넨자카를 내려오며 말차 아이스크림과 전통 공예품을 구경하세요.", addr: "교토부 교토시 히가시야마구 기요미즈 1-294", pros: ["전통 일본 거리 풍경의 정수", "사계절 절경"], recItems: ["본당 무대 전망", "니넨자카 언덕길"] },
+            { name: "히가시야마 말차 디저트·다실 카페", category: "cafe", lat: 34.9991, lng: 135.7805, duration: 60, cost: 13000, desc: "교토 우지 말차를 활용한 진한 파르페와 와라비모치를 정원을 보며 즐깁니다.", tip: "정원 창가 좌석은 오후 티타임에 대기가 생길 수 있습니다.", addr: "교토부 교토시 히가시야마구 일대", pros: ["고풍스러운 정원 뷰", "진한 우지 말차 디저트"], recItems: ["말차 파르페", "교토 화과자 세트"] },
+            { name: "교토 가이세키·두부 요리 맛집", category: "restaurant", lat: 35.0037, lng: 135.7712, duration: 75, cost: 34000, desc: "교토의 맑은 물로 만든 유두부와 제철 식재료로 차려낸 정갈한 일식 코스를 맛봅니다.", tip: "런치 시간에는 저녁보다 절반 가까운 가격으로 가이세키를 경험할 수 있습니다.", addr: "교토부 교토시 나카교구 폰토초 일대", pros: ["담백하고 섬세한 교토 음식", "가모강 인접 운치"], recItems: ["유두부 정식", "계절 미니 가이세키"] },
+            { name: "교토 가라스마·시조 모던 료칸형 호텔", category: "accommodation", lat: 35.0036, lng: 135.7595, duration: 60, cost: 195000, desc: "교토 중심가에 위치해 버스·지하철 접근성이 뛰어나며 대욕장으로 피로를 풀 수 있습니다.", tip: "대욕장이 있는 숙소를 고르면 하루 종일 걸은 뒤 피로 회복에 좋습니다.", addr: "교토부 교토시 시모교구 시조도리 일대", pros: ["주요 명소 이동 중심지", "대욕장 휴식 가능"], recItems: ["대욕장 온천수", "일본식 조식"] },
+            { name: "아라시야마 대나무 숲 & 도게츠교", category: "attraction", lat: 35.0168, lng: 135.6713, duration: 105, cost: 0, desc: "하늘을 찌를 듯 솟은 대나무 숲길과 강을 가로지르는 도게츠교가 어우러진 자연 명소입니다.", tip: "아라비카(% 커피) 아라시야마 지점에서 강을 바라보며 라떼를 즐겨보세요.", addr: "교토부 교토시 우쿄구 사가텐류지 일대", pros: ["청량한 대나무 숲 산책", "텐류지 정원 연계 가능"], recItems: ["치쿠린 대나무길", "도게츠교 강변"] },
+            { name: "니시키 시장 먹거리 탐방", category: "restaurant", lat: 35.005, lng: 135.7649, duration: 70, cost: 20000, desc: "교토의 부엌이라 불리는 400년 역사의 재래시장에서 계란말이, 두유 도넛 등을 맛봅니다.", tip: "시장 내부에서는 걸으면서 먹지 말고 매장 앞 지정 공간에서 시식하세요.", addr: "교토부 교토시 나카교구 니시키코지도리", pros: ["다양한 교토 로컬 간식", "비 오는 날에도 쾌적한 아케이드"], recItems: ["다시마키 계란말이", "두유 도넛"] }
+          ]
+        },
+        {
+          id: "danang",
+          name: "다낭",
+          region: "베트남 중부",
+          scope: "international",
+          wiki: "Da Nang",
+          visual: "nature",
+          styles: ["힐링", "자연경관", "맛집", "감성 카페", "액티비티", "야경", "온천·스파"],
+          tagline: "가성비 훌륭한 5성급 휴양과 호이안 야경, 미식이 함께하는 휴양 천국",
+          bestSeason: "2월 ~ 8월 (건기)",
+          defaultDays: 5,
+          baseCost: 780000,
+          nearbyCities: ["서울", "인천", "부산", "대구"],
+          essentials: {
+            weatherAndClothing: "연중 따뜻하고 햇볕이 강하므로 얇고 통기성 좋은 옷, 모자, 선글라스를 준비하세요. 바나힐은 고지대라 얇은 긴팔이 필요합니다.",
+            transitGuide: "그랩(Grab) 앱을 미리 설치하고 카드를 등록하면 흥정 없이 저렴하고 안전하게 시내·호이안까지 이동할 수 있습니다.",
+            budgetTips: "트래블 카드로 현지 ATM 인출이 가능하며, 로컬 쌀국수·반미와 고급 해산물 레스토랑을 조합하면 매우 여유로운 예산 관리가 됩니다.",
+            culturalAndSafetyTips: ["수돗물은 석회질이 있을 수 있으니 양치·음용 모두 생수를 이용하세요.", "한시장 쇼핑 시 흥정이 기본이며 50~60% 선에서 대화를 시작하세요."],
+            packingChecklist: ["여권(6개월 이상)", "그랩(Grab) 앱 사전 설정", "선크림 & 선글라스", "모기 기피제", "샤워기 필터", "수영복"],
+            emergencyInfo: "주다낭 대한민국 총영사관(+84-236-356-6100), 응급 115"
+          },
+          stopsPool: [
+            { name: "미케비치 해변 산책 & 모닝 커피", category: "attraction", lat: 16.0592, lng: 108.2464, duration: 75, cost: 0, desc: "세계 6대 해변으로 꼽히는 길고 고운 백사장에서 일출과 파도를 즐깁니다.", tip: "이른 오전과 해 질 무렵이 햇볕이 강하지 않아 산책하기 가장 좋습니다.", addr: "베트남 다낭 보응우옌잡 해안도로", pros: ["드넓은 백사장과 야자수 풍경", "해변 앞 카페·레스토랑 풍부"], recItems: ["야자수 해변 산책", "일출 감상"] },
+            { name: "다낭 로컬 반미 & 쌀국수 맛집", category: "restaurant", lat: 16.0684, lng: 108.2215, duration: 60, cost: 10000, desc: "바삭한 바게트에 고기와 고수가 어우러진 반미와 진한 육수의 쌀국수를 맛봅니다.", tip: "고수를 못 드시면 주문 시 '콩 라우 텀(Khong rau thom)'이라고 말씀하세요.", addr: "베트남 다낭 하이쩌우구 시내 일대", pros: ["부담 없는 현지 물가", "중독성 있는 베트남 풍미"], recItems: ["소고기 쌀국수", "바베큐 반미"] },
+            { name: "콩카페 코코넛 커피", category: "cafe", lat: 16.0695, lng: 108.2248, duration: 55, cost: 6000, desc: "한강을 바라보며 달콤하고 고소한 코코넛 스무디 커피로 더위를 식힙니다.", tip: "2층 발코니 자리에 앉으면 한강과 용다리 전경이 보입니다.", addr: "베트남 다낭 박당 거리 98-96", pros: ["시원한 코코넛 커피 맛", "빈티지 감성 인테리어"], recItems: ["코코넛 스무디 커피", "크로아상"] },
+            { name: "호이안 올드타운 & 소원배 야경", category: "attraction", lat: 15.8772, lng: 108.328, duration: 130, cost: 18000, desc: "형형색색의 등불이 밤거리와 투본강을 수놓는 유네스코 세계문화유산 마을입니다.", tip: "오후 4시경 도착해 낮 풍경과 일몰 후 등불 야경을 모두 즐기세요.", addr: "베트남 꽝남성 호이안 고대도시", pros: ["환상적인 등불 야경", "아기자기한 기념품과 카페"], recItems: ["투본강 소원배 체험", "내원교 야경"] },
+            { name: "미케비치 풀빌라/오션 리조트", category: "accommodation", lat: 16.0468, lng: 108.2485, duration: 60, cost: 150000, desc: "인피니티 풀과 조식 뷔페가 훌륭한 해변 앞 리조트에서 완벽한 휴양을 누립니다.", tip: "레이트 체크아웃이나 스파 패키지 포함 여부를 확인해보세요.", addr: "베트남 다낭 미케비치 해안가", pros: ["탁월한 가성비의 5성급 시설", "프라이빗 비치·수영장"], recItems: ["인피니티 풀", "베트남식 조식"] },
+            { name: "바나힐 골든브릿지 투어", category: "activity", lat: 15.9977, lng: 107.988, duration: 200, cost: 48000, desc: "세계 최장 케이블카를 타고 해발 1,400m 거대한 손 모양 다리와 프랑스 마을을 거닙니다.", tip: "오전 첫 케이블카(8시)를 타야 안개 없이 쾌적하게 사진 찍기 좋습니다.", addr: "베트남 다낭 호아방 바나힐", pros: ["이국적인 산악 테마파크", "시원한 고지대 기후"], recItems: ["골든브릿지 인증샷", "알파인 코스터"] },
+            { name: "다낭 용다리 & 선짜 야시장 해산물", category: "restaurant", lat: 16.0611, lng: 108.2297, duration: 85, cost: 28000, desc: "금·토·일 밤 9시 불을 뿜는 용다리 쇼를 감상한 뒤 신선한 해산물을 맛봅니다.", tip: "타이거새우 갈릭버터구이와 모닝글로리 볶음 조합을 추천합니다.", addr: "베트남 다낭 선짜구 마이학데 거리", pros: ["활기찬 야시장 분위기", "신선하고 저렴한 해산물"], recItems: ["갈릭버터 타이거새우", "모닝글로리 볶음"] }
+          ]
+        },
+        {
+          id: "paris",
+          name: "파리",
+          region: "프랑스 일드프랑스",
+          scope: "international",
+          wiki: "Paris",
+          visual: "heritage",
+          styles: ["문화·예술", "역사", "감성 카페", "쇼핑", "야경", "인생샷·출사", "맛집"],
+          tagline: "루브르의 예술과 센강의 낭만, 골목 노천 카페가 영화처럼 펼쳐지는 도시",
+          bestSeason: "봄(5~6월) · 가을(9~10월)",
+          defaultDays: 5,
+          baseCost: 2400000,
+          nearbyCities: ["서울", "인천"],
+          essentials: {
+            weatherAndClothing: "변덕스러운 날씨와 잦은 돌길 보행을 대비해 가벼운 트렌치코트·우산과 튼튼한 워킹화를 챙기세요.",
+            transitGuide: "지하철(메트로)과 RER 노선이 거미줄처럼 연결되어 있습니다. 나비고 이지(Navigo Easy) 또는 위클리 패스로 권역 내 이동이 편리합니다.",
+            budgetTips: "루브르·오르세·개선문 등을 함께 본다면 파리 뮤지엄 패스(2일/4일권)가 유리하며, 마트 바게트·치즈 피크닉도 낭만과 예산을 모두 챙기는 팁입니다.",
+            culturalAndSafetyTips: ["관광지·지하철 내 소매치기 예방을 위해 크로스백을 앞으로 메세요.", "식당·상점 입장 시 '봉주르(Bonjour)' 인사를 먼저 건네면 훨씬 친절한 응대를 받을 수 있습니다."],
+            packingChecklist: ["여권 및 사본", "유럽 E타입 멀티어댑터", "자물쇠·방범 크로스백", "편한 운동화", "접이식 우산", "보조배터리"],
+            emergencyInfo: "주프랑스 대한민국 대사관(+33-1-4753-0101), 유럽 통합 긴급 112"
+          },
+          stopsPool: [
+            { name: "루브르 박물관 & 튈르리 정원", category: "attraction", lat: 48.8606, lng: 2.3376, duration: 150, cost: 33000, desc: "모나리자와 밀로의 비너스 등 인류 예술의 걸작이 모인 세계 최대 박물관입니다.", tip: "입장 시간 사전 예약이 필수이며 리슐리외·카루젤 입구가 줄이 짧습니다.", addr: "프랑스 파리 1구 리볼리 거리", pros: ["세계 최고 수준의 예술 컬렉션", "유리 피라미드 야경과 분수 정원"], recItems: ["모나리자 · 승리의 여신상", "튈르리 정원 초록 의자 휴식"] },
+            { name: "마레 지구 정통 프렌치 비스트로", category: "restaurant", lat: 48.8575, lng: 2.3622, duration: 80, cost: 48000, desc: "오리 다리 컨피(콩피 드 카나르)와 어니언 수프 등 클래식 프랑스 가정식을 즐깁니다.", tip: "점심 '포르뮬(오늘의 메뉴)' 세트를 이용하면 훨씬 합리적입니다.", addr: "프랑스 파리 3구·4구 마레 지구 일대", pros: ["아늑한 파리지앵 비스트로 감성", "깊은 풍미의 프랑스 정찬"], recItems: ["프렌치 어니언 수프", "비프 부르기뇽"] },
+            { name: "생제르맹 노천 테라스 카페", category: "cafe", lat: 48.854, lng: 2.3325, duration: 60, cost: 18000, desc: "에스프레소와 갓 구운 크루아상을 곁들이며 파리 거리의 여유를 만끽합니다.", tip: "테라스 의자는 거리를 바라보도록 배치되어 있어 사람 구경하기 좋습니다.", addr: "프랑스 파리 6구 생제르맹 대로 일대", pros: ["파리 특유의 노천 카페 감성", "버터 향 가득한 정통 페이스트리"], recItems: ["크렘 브륄레", "카페 크렘과 크루아상"] },
+            { name: "에펠탑 & 트로카데로 광장 야경", category: "attraction", lat: 48.8584, lng: 2.2945, duration: 90, cost: 0, desc: "매시 정각마다 5분간 반짝이는 화이트 에펠을 마주하는 파리 여행의 하이라이트입니다.", tip: "트로카데로 광장과 비르아켐 다리 두 곳의 구도를 모두 담아보세요.", addr: "프랑스 파리 7구 샹 드 마르스 5", pros: ["평생 기억에 남는 화이트 에펠 야경", "센강 유람선 연계 최적"], recItems: ["트로카데로 정면 야경", "바토무슈 유람선"] },
+            { name: "파리 오페라·생제르맹 부티크 호텔", category: "accommodation", lat: 48.8708, lng: 2.3319, duration: 60, cost: 340000, desc: "치안이 우수하고 루브르·오르세·백화점 도보 접근성이 뛰어난 중심부 숙소입니다.", tip: "엘리베이터 유무와 24시간 리셉션 운영 여부를 미리 확인하세요.", addr: "프랑스 파리 2구·9구 오페라 지구 일대", pros: ["안전한 중심가 입지", "공항버스(루아시버스) 정류장 인접"], recItems: ["파리 발코니 뷰", "프렌치 크루아상 조식"] },
+            { name: "오르세 미술관 & 센강 서점 거리", category: "attraction", lat: 48.86, lng: 2.3266, duration: 120, cost: 25000, desc: "고흐, 모네, 르누아르 등 인상파 거장들의 작품을 옛 기차역 건물에서 감상합니다.", tip: "5층 대형 시계창 앞에서 센강과 몽마르트를 배경으로 사진을 남겨보세요.", addr: "프랑스 파리 7구 릴 거리 1", pros: ["인상파 명작 집중 감상", "아름다운 기차역 건축미"], recItems: ["5층 시계탑 포토존", "고흐의 별이 빛나는 밤에"] },
+            { name: "몽마르트 언덕 & 사크레쾨르 대성당", category: "attraction", lat: 48.8867, lng: 2.3431, duration: 90, cost: 0, desc: "화가들의 광장 테르트르와 파리 시내가 한눈에 내려다보이는 언덕 마을입니다.", tip: "호객행위를 피하려면 정식 계단·푸니쿨라 메인 동선을 따라 이동하세요.", addr: "프랑스 파리 18구 몽마르트", pros: ["예술가들의 낭만적 골목", "탁 트인 파리 시내 조망"], recItems: ["사크레쾨르 앞 계단", "사랑해 벽"] }
+          ]
+        },
+        {
+          id: "bangkok",
+          name: "방콕",
+          region: "태국 중부",
+          scope: "international",
+          wiki: "Bangkok",
+          visual: "city",
+          styles: ["맛집", "쇼핑", "야경", "힐링", "로컬 시장", "온천·스파", "액티비티"],
+          tagline: "화려한 황금 사원과 루프탑 야경, 미식과 스파가 가득한 동남아 허브",
+          bestSeason: "11월 ~ 2월 (건기)",
+          defaultDays: 4,
+          baseCost: 820000,
+          nearbyCities: ["서울", "인천", "부산"],
+          essentials: {
+            weatherAndClothing: "무더운 열대 기후지만 대형 쇼핑몰과 지상철 내부는 냉방이 매우 강하므로 얇은 셔츠·가디건을 휴대하세요.",
+            transitGuide: "출퇴근 시간 차량 정체가 심하므로 BTS(지상철), MRT(지하철), 차오프라야 수상보트를 조합하는 것이 가장 빠릅니다.",
+            budgetTips: "야시장과 푸드코트(터미널21 등)를 활용하면 하루 식비를 크게 줄이고 스파나 루프탑 바에 투자할 수 있습니다.",
+            culturalAndSafetyTips: ["왕궁·왓아룬 등 사원 입장 시 민소매와 짧은 반바지/치마는 제한됩니다.", "택시 이용 시 미터기 사용을 확인하거나 그랩/볼트 앱을 사용하세요."],
+            packingChecklist: ["여권", "얇은 겉옷(냉방 대비)", "선크림", "그랩/볼트 앱", "편한 샌들/운동화", "상비약"],
+            emergencyInfo: "주태국 대한민국 대사관(+66-2-247-7537), 관광경찰 1155"
+          },
+          stopsPool: [
+            { name: "왓 아룬 (새벽 사원) & 차오프라야 강", category: "attraction", lat: 13.7437, lng: 100.4888, duration: 80, cost: 8000, desc: "도자기 조각으로 장식된 웅장한 탑이 강변에 우뚝 선 방콕의 대표 랜드마크입니다.", tip: "강 건너편 리버뷰 카페에서 일몰과 조명 켜진 왓 아룬을 감상해보세요.", addr: "태국 방콕 야이구 왓아룬", pros: ["정교하고 이국적인 불탑", "강변 배 이동의 즐거움"], recItems: ["중앙 프랑 계단", "강 건너 야경 포인트"] },
+            { name: "방콕 푸팟퐁커리 & 팟타이 맛집", category: "restaurant", lat: 13.7465, lng: 100.5347, duration: 70, cost: 24000, desc: "부드러운 게살 커리(푸팟퐁커리)와 불향 가득한 팟타이, 쏨땀을 맛봅니다.", tip: "시내 대형 백화점 내 분점은 위생적이고 웨이팅 관리가 잘 됩니다.", addr: "태국 방콕 빠툼완 시암 일대", pros: ["한국인 입맛에 잘 맞는 태국 요리", "쾌적한 실내 식사"], recItems: ["푸팟퐁커리", "모닝글로리", "망고 스티키라이스"] },
+            { name: "타티엔 강변 뷰 감성 카페", category: "cafe", lat: 13.7453, lng: 100.4912, duration: 60, cost: 11000, desc: "시원한 에어컨 실내와 강 건너 사원이 보이는 루프탑에서 망고 스무디를 즐깁니다.", tip: "오후 5시 반~6시 사이 일몰 시간에 맞춰 창가 자리를 노려보세요.", addr: "태국 방콕 프라나콘 마하라트 거리", pros: ["최고의 왓아룬 조망 명당", "열대과일 디저트"], recItems: ["망고 스무디", "타이 밀크티"] },
+            { name: "방콕 루프탑 스카이바 야경", category: "activity", lat: 13.7235, lng: 100.5403, duration: 75, cost: 32000, desc: "초고층 빌딩 야외 테라스에서 방콕 도심의 화려한 불빛과 칵테일을 즐깁니다.", tip: "슬리퍼와 민소매는 출입이 제한될 수 있으니 깔끔한 캐주얼 복장을 챙기세요.", addr: "태국 방콕 사톤·실롬 지구 일대", pros: ["환상적인 도심 마천루 야경", "세련된 밤 분위기"], recItems: ["시그니처 논알콜/칵테일", "야경 파노라마"] },
+            { name: "수쿰빗·시암 인피니티풀 호텔", category: "accommodation", lat: 13.7383, lng: 100.5608, duration: 60, cost: 160000, desc: "BTS 역과 바로 연결되어 이동이 편리하고 도심 수영장이 있는 5성급 가성비 숙소입니다.", tip: "아속역 또는 시암역 근처를 선택하면 공항과 야시장 이동이 모두 편리합니다.", addr: "태국 방콕 왓타나구 수쿰빗 거리", pros: ["지상철 초역세권", "뛰어난 가성비의 럭셔리 수영장"], recItems: ["도심 인피니티풀", "조식 뷔페"] },
+            { name: "아이콘시암 & 쑥시암 실내 수상시장", category: "activity", lat: 13.7267, lng: 100.5105, duration: 110, cost: 25000, desc: "초대형 럭셔리 복합몰 안에 재현된 쾌적한 수상시장에서 태국 전역 음식을 맛봅니다.", tip: "매일 저녁 강변 광장에서 분수 쇼가 열립니다.", addr: "태국 방콕 클롱산 차로엔나콘 299", pros: ["시원한 실내 쇼핑과 로컬 먹거리 결합", "무료 셔틀보트 운행"], recItems: ["쑥시암 망고밥", "강변 분수쇼"] },
+            { name: "방콕 정통 타이 아로마 스파", category: "activity", lat: 13.7345, lng: 100.5632, duration: 95, cost: 45000, desc: "여행의 피로를 말끔히 풀어주는 90분 아로마 오일 마사지와 허브티 체험입니다.", tip: "미리 시간대 예약 시 웰컴 티와 원하는 아로마 향을 선택할 수 있습니다.", addr: "태국 방콕 수쿰빗 프롬퐁 일대", pros: ["고급스러운 휴식 공간", "피로 회복 효과 탁월"], recItems: ["90분 아로마 스파", "허브볼 찜질"] }
+          ]
+        }
+      ];
+
+      // Extra destinations so every taste combination has deep variety
+      DESTINATIONS.push(
+        {
+          id: "sokcho",
+          name: "속초",
+          region: "대한민국 강원특별자치도",
+          scope: "domestic",
+          wiki: "Sokcho",
+          visual: "nature",
+          styles: ["자연경관", "맛집", "힐링", "로컬 시장", "온천·스파", "액티비티"],
+          tagline: "설악산의 웅장한 산세와 동해 바다, 중앙시장 먹거리가 조화로운 힐링 여행",
+          bestSeason: "가을(단풍) · 여름",
+          defaultDays: 2,
+          baseCost: 340000,
+          nearbyCities: ["서울", "인천"],
+          essentials: {
+            weatherAndClothing: "설악산 고지대와 바닷가 모두 기온이 낮을 수 있어 바람막이와 편한 트레킹화가 필수입니다.",
+            transitGuide: "동서울/서울고속버스터미널에서 약 2시간 20분 소요되며, 시내는 크기가 컴팩트해 택시·버스로 15분 내 이동합니다.",
+            budgetTips: "속초관광수산시장과 아바이마을 갯배 체험은 적은 비용으로도 알찬 즐거움을 줍니다.",
+            culturalAndSafetyTips: ["설악산 케이블카는 바람이 세면 운행이 중단되므로 당일 오전 공지를 확인하세요."],
+            packingChecklist: ["트레킹화", "바람막이", "보조배터리", "선글라스"],
+            emergencyInfo: "속초시 관광안내소(033-639-2690), 응급 119"
+          },
+          stopsPool: [
+            { name: "설악산 케이블카 & 권금성", category: "attraction", lat: 38.1726, lng: 128.4856, duration: 90, cost: 15000, desc: "울산바위와 동해까지 한눈에 내려다보이는 설악산 대표 전망 코스입니다.", tip: "오전 일찍 매표해야 원하는 시간대에 대기 없이 탑승합니다.", addr: "강원 속초시 설악산로 1085", pros: ["힘들이지 않고 오르는 정상 전망", "사계절 장관"], recItems: ["권금성 봉화대", "안락암 전경"] },
+            { name: "아바이마을 갯배 & 오징어순대", category: "restaurant", lat: 38.2044, lng: 128.5913, duration: 70, cost: 20000, desc: "직접 쇠갈고리로 줄을 당겨 타는 갯배를 건너 따끈한 아바이순대를 맛봅니다.", tip: "생선구이 골목과 연결되어 식사 선택지가 다양합니다.", addr: "강원 속초시 청호로 122", pros: ["이색적인 갯배 체험", "진한 풍미의 오징어순대"], recItems: ["오징어순대", "명태회냉면"] },
+            { name: "속초해수욕장 오션뷰 베이커리 카페", category: "cafe", lat: 38.1904, lng: 128.6033, duration: 60, cost: 13000, desc: "하얀 대관람차 속초아이와 푸른 바다를 바라보며 휴식하는 카페입니다.", tip: "테라스에서 바다와 대관람차를 배경으로 인증샷을 남겨보세요.", addr: "강원 속초시 해오름로 일대", pros: ["바다 바로 앞 휴식 공간", "갓 구운 베이커리"], recItems: ["소금빵", "아이스 아메리카노"] },
+            { name: "척산온천 휴양촌", category: "activity", lat: 38.1782, lng: 128.5325, duration: 90, cost: 12000, desc: "53도 천연 강알칼리성 온천수로 산행과 여행의 피로를 푸는 힐링 스파입니다.", tip: "수영복 없이 이용 가능한 온천 사우나와 무료 족욕공원도 인접해 있습니다.", addr: "강원 속초시 관광로 327", pros: ["매끄러운 천연 온천수 수질", "가성비 좋은 힐링"], recItems: ["노천 족욕 체험", "천연 온천욕"] },
+            { name: "속초 영랑호·해변 오션 호텔", category: "accommodation", lat: 38.2108, lng: 128.5872, duration: 60, cost: 130000, desc: "호수와 바다를 동시에 품은 조용한 입지의 휴양 숙소입니다.", tip: "아침 영랑호 범바위 산책 코스가 매우 좋습니다.", addr: "강원 속초시 영랑해안길 일대", pros: ["탁 트인 호수·바다 전망", "중앙시장 접근 용이"], recItems: ["조식", "호수 산책"] },
+            { name: "속초관광수산시장 먹거리", category: "restaurant", lat: 38.2016, lng: 128.5889, duration: 75, cost: 18000, desc: "만석닭강정, 새우튀김, 홍게 등 속초의 다채로운 먹거리를 한 번에 즐깁니다.", tip: "지하 활어회 센터에서 회를 포장해 숙소에서 드시는 것도 추천합니다.", addr: "강원 속초시 중앙로147번길 12", pros: ["깔끔한 실내 동선", "풍부한 지역 명물"], recItems: ["닭강정", "대게·홍게 찜"] }
+          ]
+        },
+        {
+          id: "taipei",
+          name: "타이베이",
+          region: "대만 북부",
+          scope: "international",
+          wiki: "Taipei",
+          visual: "city",
+          styles: ["맛집", "야경", "로컬 시장", "감성 카페", "쇼핑", "온천·스파", "역사"],
+          tagline: "지우펀의 붉은 등불과 야시장 미식, 온천까지 짧은 비행으로 만나는 대만",
+          bestSeason: "10월 ~ 4월",
+          defaultDays: 4,
+          baseCost: 920000,
+          nearbyCities: ["서울", "인천", "부산", "대구"],
+          essentials: {
+            weatherAndClothing: "습도가 높고 소나기가 잦으므로 접이식 우산과 통기성 좋은 옷을 준비하세요.",
+            transitGuide: "타오위안 공항철도(MRT)로 35분 만에 시내에 진입하며, 이지카드(교통카드) 하나로 지하철·버스·편의점 모두 결제가 됩니다.",
+            budgetTips: "야시장 간식과 우육면·루로우판 등 현지 음식 가격이 매우 합리적이어서 식도락 여행에 최적입니다.",
+            culturalAndSafetyTips: ["대만 지하철(MRT) 역내 및 열차 안에서는 물 포함 모든 음식물 섭취가 금지(벌금 부과)됩니다."],
+            packingChecklist: ["여권", "110V 11자 어댑터", "접이식 우산", "이지카드/대만달러", "보조배터리"],
+            emergencyInfo: "주타이베이 대한민국 대표부(+886-2-2758-8320), 긴급 110/119"
+          },
+          stopsPool: [
+            { name: "국립고궁박물원 또는 중정기념당", category: "attraction", lat: 25.0347, lng: 121.5218, duration: 90, cost: 0, desc: "웅장한 흰색 대리석 기념당과 매시 정각 열리는 근위병 교대식을 관람합니다.", tip: "오전 9시부터 매시 정각에 교대식이 열리니 10분 전에 자리를 잡으세요.", addr: "대만 타이베이 중정구 중산남로 21", pros: ["웅장한 건축과 광장", "무료 관람"], recItems: ["정각 근위병 교대식", "자유광장 아치"] },
+            { name: "융캉제 정통 우육면 & 딤섬 맛집", category: "restaurant", lat: 25.0332, lng: 121.5297, duration: 70, cost: 18000, desc: "진한 소고기 육수의 우육면과 육즙 가득한 샤오롱바오, 망고빙수를 즐깁니다.", tip: "식사 후 골목 안쪽 망고빙수까지 이어지는 미식 코스가 최고입니다.", addr: "대만 타이베이 다안구 융캉제 일대", pros: ["실패 없는 대만 정통 미식", "아기자기한 소품샵 인접"], recItems: ["샤오롱바오", "홍샤오 우육면", "망고빙수"] },
+            { name: "화산1914 감성 카페 & 소품 거리", category: "cafe", lat: 25.0441, lng: 121.5293, duration: 70, cost: 11000, desc: "옛 양조장을 개조한 복합문화공간에서 스페셜티 커피와 디자인 굿즈를 둘러봅니다.", tip: "주말에는 플리마켓과 버스킹이 자주 열려 활기가 넘칩니다.", addr: "대만 타이베이 중정구 바더로 1단", pros: ["감각적인 벽돌 인테리어", "개성 있는 대만 로컬 브랜드"], recItems: ["아메리카노", "우드 오르골 굿즈"] },
+            { name: "지우펀 홍등 거리 야경 (근교 이동)", category: "attraction", lat: 25.1099, lng: 121.8452, duration: 140, cost: 15000, desc: "산비탈 좁은 계단에 붉은 홍등이 켜지는 몽환적인 분위기의 필수 야경 명소입니다.", tip: "오후 4시 반경 도착해 아메이차주관 맞은편 전망 포인트에서 홍등 점등을 보세요.", addr: "대만 신베이시 루이팡구 지우펀", pros: ["애니메이션 같은 동화적 야경", "땅콩아이스크림 등 길거리 간식"], recItems: ["아메이차주관 야경", "땅콩아이스크림"] },
+            { name: "타이베이 메인역·시먼딩 호텔", category: "accommodation", lat: 25.0445, lng: 121.5082, duration: 60, cost: 155000, desc: "공항철도 및 주요 MRT 노선이 교차해 어디든 빠르게 이동 가능한 시내 숙소입니다.", tip: "시먼딩 야간 산책과 까르푸 마트 쇼핑을 도보로 즐기기 좋습니다.", addr: "대만 타이베이 완화구 시먼딩 일대", pros: ["최상의 교통 요지", "늦은 밤까지 편리한 상권"], recItems: ["시내 전망 객실", "조식"] },
+            { name: "스린 야시장 또는 라오허제 야시장", category: "restaurant", lat: 25.0509, lng: 121.5775, duration: 85, cost: 16000, desc: "후추빵, 지파이(대왕 닭튀김), 큐브 스테이크 등 대만 야시장의 진수를 경험합니다.", tip: "라오허제 야시장은 일자형 골목이라 길을 잃지 않고 구경하기 편합니다.", addr: "대만 타이베이 쑹산구 라오허 거리", pros: ["화려하고 활기찬 야시장", "저렴한 미식 천국"], recItems: ["화덕 후추빵", "지파이", "파파야밀크"] },
+            { name: "타이베이 101 전망대 또는 베이터우 온천", category: "activity", lat: 25.0339, lng: 121.5645, duration: 95, cost: 28000, desc: "초고속 엘리베이터로 오르는 타이베이 스카이라인 또는 도심 근교 유황 온천을 즐깁니다.", tip: "101빌딩 맞은편 샹산(코끼리산) 전망대에 오르면 무료로 101 야경을 담을 수 있습니다.", addr: "대만 타이베이 신이구 신이로 5단 7", pros: ["시원한 시내 파노라마 뷰", "쇼핑몰·딘타이펑 연계"], recItems: ["타이베이 야경", "기념품"] }
+          ]
+        },
+        {
+          id: "lisbon",
+          name: "리스본",
+          region: "포르투갈 리스본",
+          scope: "international",
+          wiki: "Lisbon",
+          visual: "heritage",
+          styles: ["힐링", "감성 카페", "역사", "자연경관", "야경", "인생샷·출사", "맛집"],
+          tagline: "노란 트램과 타일 건축물, 따스한 대서양 햇살이 머무는 서유럽 감성 도시",
+          bestSeason: "4월 ~ 6월 · 9월 ~ 10월",
+          defaultDays: 5,
+          baseCost: 2200000,
+          nearbyCities: ["서울", "인천"],
+          essentials: {
+            weatherAndClothing: "언덕(일곱 언덕의 도시)과 미끄러운 돌바닥(칼사다)이 많으므로 접지력 좋은 운동화가 필수입니다.",
+            transitGuide: "비바 비아젬(Viva Viagem) 24시간 교통권을 구매하면 트램·지하철·산타주스타 엘리베이터까지 무제한 이용이 가능합니다.",
+            budgetTips: "서유럽 중에서도 물가가 합리적이며, 에그타르트(파스텔 드 나타)와 해산물 요리를 부담 없이 즐길 수 있습니다.",
+            culturalAndSafetyTips: ["28번 트램 내부는 혼잡할 때 소매치기에 유의하세요."],
+            packingChecklist: ["여권", "유럽 멀티어댑터", "접지력 좋은 운동화", "선글라스", "자외선 차단제"],
+            emergencyInfo: "주포르투갈 대한민국 대사관(+351-21-793-7200), 유럽 긴급 112"
+          },
+          stopsPool: [
+            { name: "알파마 지구 & 28번 노란 트램", category: "attraction", lat: 38.7117, lng: -9.1303, duration: 95, cost: 6000, desc: "리스본에서 가장 오래된 언덕 마을 골목길과 클래식한 노란 트램을 만납니다.", tip: "28번 트램은 종점 마르팀 모니스보다 중간 정류장이나 도보 산책이 더 여유롭습니다.", addr: "포르투갈 리스본 알파마 지구", pros: ["아줄레주 타일 벽면과 골목 정취", "유서 깊은 트램 풍경"], recItems: ["포르타스 두 솔 전망대", "노란 트램 포토존"] },
+            { name: "타임아웃 마켓 & 바칼라우(대구) 요리", category: "restaurant", lat: 38.707, lng: -9.1459, duration: 75, cost: 35000, desc: "리스본 인기 셰프들의 요리와 해산물 문어밥·바칼라우를 한곳에서 맛봅니다.", tip: "저녁보다 이른 점심이나 오후 4시경 방문하면 좌석 잡기가 수월합니다.", addr: "포르투갈 리스본 카이스 두 소드레", pros: ["검증된 로컬 스타 셰프 메뉴", "다양한 포트와인 시음"], recItems: ["포르투갈식 문어밥", "대구 크로켓"] },
+            { name: "벨렘 지구 에그타르트 명소 (파스테이스 드 벨렘)", category: "cafe", lat: 38.6975, lng: -9.2032, duration: 60, cost: 10000, desc: "1837년부터 전해 내려오는 원조 레시피의 따끈하고 바삭한 에그타르트를 맛봅니다.", tip: "테이크아웃 줄보다 내부 넓은 홀 좌석 줄이 오히려 빠를 때가 많습니다.", addr: "포르투갈 리스본 벨렘 거리 84-92", pros: ["바삭한 페스츄리와 진한 커스터드", "시나몬·슈가파우더 조합"], recItems: ["원조 에그타르트(나타)", "에스프레소(비카)"] },
+            { name: "산타루지아 전망대 & 선셋 감상", category: "attraction", lat: 38.7116, lng: -9.1304, duration: 70, cost: 0, desc: "주황빛 지붕들과 테주강이 파노라마처럼 펼쳐지는 리스본 대표 노을 명당입니다.", tip: "거리 악사의 연주를 들으며 노을 지는 시간을 만끽해보세요.", addr: "포르투갈 리스본 산타루지아", pros: ["그림 같은 붉은 지붕 전망", "로맨틱한 버스킹 분위기"], recItems: ["파란 타일 기둥", "강변 일몰"] },
+            { name: "바이샤·호시우 광장 부티크 호텔", category: "accommodation", lat: 38.7138, lng: -9.1394, duration: 60, cost: 240000, desc: "평지 중심가에 자리해 무거운 캐리어 이동과 기차·지하철 이용이 가장 편합니다.", tip: "언덕 위 숙소보다 평지인 바이샤 지구가 여행 중 피로도가 훨씬 적습니다.", addr: "포르투갈 리스본 호시우 광장 일대", pros: ["평지 중심가 편리한 입지", "주변 식당·트램 연결 최상"], recItems: ["조식", "광장 산책"] },
+            { name: "제로니무스 수도원 & 발견기념비", category: "attraction", lat: 38.6979, lng: -9.2067, duration: 95, cost: 18000, desc: "대항해시대 포르투갈의 영광을 보여주는 화려한 마누엘 양식 유네스코 유산입니다.", tip: "오픈 시간에 맞춰 방문하면 회랑 대기 줄을 줄일 수 있습니다.", addr: "포르투갈 리스본 프라사 두 임페리우", pros: ["정교하고 웅장한 석조 조각", "벨렘 탑 도보 연계"], recItems: ["수도원 2층 회랑", "벨렘 탑 해변"] }
+          ]
+        }
+      );
+
+      // Application State
+      const state = {
+        step: "preferences",
+        prefs: {
+          styles: ["자연경관", "맛집", "감성 카페"],
+          departureCity: "서울",
+          scope: "any",
+          budgetKrw: 60,
+          budgetBasis: "per_person",
+          preferredDays: null,
+          companion: "연인·커플",
+          transport: "대중교통(기차·버스·지하철)",
+          pace: "balanced",
+          notes: ""
+        },
+        customStyleDraft: "",
+        validationError: "",
+        analysisSummary: "",
+        recommendations: [],
+        plan: null,
+        activeDayIdx: 0,
+        categoryFilter: "all",
+        activeStopId: null,
+        optimizationNotice: "",
+        draftDays: 3,
+        draftBudgetMan: 60,
+        checkedPacking: {},
+        reviewStop: null,
+        addModalOpen: false,
+        addModalTab: "custom",
+        addModalCategory: "restaurant"
+      };
+
+      function esc(str) {
+        return String(str == null ? "" : str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function formatKrw(won) {
+        if (!Number.isFinite(won) || won <= 0) return "무료";
+        if (won >= 10000) {
+          const man = Math.floor(won / 10000);
+          const rem = won % 10000;
+          if (rem === 0) return man.toLocaleString("ko-KR") + "만원";
+          return won.toLocaleString("ko-KR") + "원";
+        }
+        return won.toLocaleString("ko-KR") + "원";
+      }
+
+      function haversineKm(lat1, lng1, lat2, lng2) {
+        if (!lat1 && !lng1) return 0;
+        if (!lat2 && !lng2) return 0;
+        const toRad = (d) => (d * Math.PI) / 180;
+        const R = 6371;
+        const dLat = toRad(lat2 - lat1);
+        const dLng = toRad(lng2 - lng1);
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+        return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
+      }
+
+      function estimateTransit(from, to, transportPref) {
+        const km = haversineKm(from.lat, from.lng, to.lat, to.lng);
+        if (km <= 0.8) {
+          const mins = Math.max(4, Math.round(km * 14));
+          return { mode: "도보", minutes: mins, distanceKm: km, summary: "도보 약 " + mins + "분 (" + km.toFixed(1) + "km)" };
+        }
+        const isCar = transportPref.includes("렌터카") || transportPref.includes("자차") || transportPref.includes("택시");
+        if (isCar) {
+          const mins = Math.max(6, Math.round((km / 28) * 60 + 4));
+          const mode = transportPref.includes("택시") ? "택시" : "차량";
+          return { mode, minutes: mins, distanceKm: km, summary: mode + " 약 " + mins + "분 (" + km.toFixed(1) + "km)" };
+        }
+        const mins = Math.max(8, Math.round((km / 18) * 60 + 6));
+        const mode = km > 4 ? "지하철·버스" : "버스·도보";
+        return { mode, minutes: mins, distanceKm: km, summary: mode + " 약 " + mins + "분 (" + km.toFixed(1) + "km)" };
+      }
+
+      function recalcTransits(stops) {
+        return stops.map((s, idx) => {
+          if (idx === 0) return Object.assign({}, s, { transitFromPrev: null });
+          return Object.assign({}, s, { transitFromPrev: estimateTransit(stops[idx - 1], s, state.prefs.transport) });
+        });
+      }
+
+      function totalDistanceKm(stops) {
+        let sum = 0;
+        for (let i = 1; i < stops.length; i++) {
+          sum += haversineKm(stops[i - 1].lat, stops[i - 1].lng, stops[i].lat, stops[i].lng);
+        }
+        return Math.round(sum * 10) / 10;
+      }
+
+      function svgArtworkDataUrl(visual, title) {
+        const palettes = {
+          nature: ["#0f766e", "#0284c7", "#1e3a8a"],
+          heritage: ["#475569", "#1e293b", "#334155"],
+          city: ["#1d4ed8", "#0f172a", "#312e81"]
+        };
+        const pal = palettes[visual] || palettes.city;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${pal[0]}"/><stop offset="60%" stop-color="${pal[1]}"/><stop offset="100%" stop-color="${pal[2]}"/></linearGradient></defs><rect width="800" height="600" fill="url(#g)"/><circle cx="620" cy="150" r="110" fill="#ffffff" opacity="0.12"/><path d="M0 440 Q220 330 460 400 T800 360 L800 600 L0 600 Z" fill="#0f172a" opacity="0.45"/><path d="M0 500 Q260 450 520 495 T800 470 L800 600 L0 600 Z" fill="#0f172a" opacity="0.72"/></svg>`;
+        return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+      }
+
+      function hydrateWikiPhoto(imgEl, wikiQuery) {
+        if (!wikiQuery || typeof fetch !== "function") return;
+        const url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(wikiQuery);
+        fetch(url)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => {
+            if (!data) return;
+            const src = (data.thumbnail && data.thumbnail.source) || (data.originalimage && data.originalimage.source);
+            if (src && imgEl && imgEl.isConnected) {
+              const highRes = src.replace(/\/\d+px-/, "/800px-");
+              const tester = new Image();
+              tester.referrerPolicy = "no-referrer";
+              tester.onload = () => {
+                if (imgEl.isConnected) imgEl.src = highRes;
+              };
+              tester.src = highRes;
+            }
+          })
+          .catch(() => {});
+      }
+
+      // Recommendation scoring engine
+      function recommendDestinations(prefs) {
+        const pool = DESTINATIONS.filter((d) => {
+          if (prefs.scope === "domestic") return d.scope === "domestic";
+          if (prefs.scope === "international") return d.scope === "international";
+          return true;
+        });
+
+        const budgetWon = prefs.budgetKrw * 10000;
+        const scored = pool.map((d) => {
+          let score = 0;
+          const matchedStyles = [];
+          prefs.styles.forEach((st) => {
+            if (d.styles.includes(st)) {
+              score += 22;
+              matchedStyles.push(st);
+            } else if (
+              (st.includes("바다") || st.includes("산") || st.includes("트레킹")) && d.styles.includes("자연경관") ||
+              (st.includes("카페") || st.includes("커피")) && d.styles.includes("감성 카페") ||
+              (st.includes("식도락") || st.includes("음식")) && d.styles.includes("맛집") ||
+              (st.includes("사진")) && d.styles.includes("인생샷·출사") ||
+              (st.includes("스파") || st.includes("온천") || st.includes("휴양")) && d.styles.includes("힐링")
+            ) {
+              score += 14;
+              matchedStyles.push(st);
+            }
+          });
+
+          if (d.nearbyCities.includes(prefs.departureCity)) score += 10;
+          if (prefs.scope === "any" && d.scope === "domestic" && budgetWon <= 550000) score += 14;
+          if (prefs.scope === "any" && d.scope === "international" && budgetWon >= 900000) score += 14;
+
+          // Budget fitness
+          const ratio = d.baseCost / Math.max(100000, budgetWon);
+          if (ratio <= 1.2) score += 18;
+          else if (ratio <= 1.55) score += 6;
+          else score -= 18;
+
+          // Companion fit
+          if (prefs.companion.includes("부모님") && (d.styles.includes("역사") || d.styles.includes("힐링"))) score += 10;
+          if (prefs.companion.includes("연인") && (d.styles.includes("야경") || d.styles.includes("감성 카페"))) score += 8;
+          if (prefs.companion.includes("친구") && (d.styles.includes("맛집") || d.styles.includes("쇼핑"))) score += 8;
+          if (prefs.companion.includes("혼자") && (d.styles.includes("감성 카페") || d.styles.includes("문화·예술"))) score += 8;
+
+          const recDays = prefs.preferredDays || d.defaultDays;
+          const recNights = Math.max(0, recDays - 1);
+
+          // Scale displayed estimate realistically near user's budget & duration
+          const durationFactor = recDays / d.defaultDays;
+          const rawEstimate = Math.round((d.baseCost * durationFactor * 0.45 + budgetWon * 0.55) / 10000) * 10000;
+          const estTotal = Math.max(100000, rawEstimate);
+
+          const transportRatio = d.scope === "international" ? 0.36 : 0.18;
+          const accomRatio = recNights > 0 ? 0.34 : 0;
+          const foodRatio = 0.28;
+          const transport = Math.round((estTotal * transportRatio) / 10000) * 10000;
+          const accommodation = Math.round((estTotal * accomRatio) / 10000) * 10000;
+          const food = Math.round((estTotal * foodRatio) / 10000) * 10000;
+          const activities = Math.max(0, estTotal - transport - accommodation - food);
+
+          const styleText = matchedStyles.length > 0 ? matchedStyles.join("·") : d.styles.slice(0, 3).join("·");
+          const reason = `${prefs.departureCity}에서 ${prefs.transport}으로 이동하기 좋으며, 선택하신 '${styleText}' 취향에 최적화된 동선을 갖추고 있습니다. ${prefs.companion} 여행 템포(${prefs.pace === "relaxed" ? "여유롭게" : prefs.pace === "packed" ? "알차게" : "보통"})에 맞춰 핵심 명소와 검증된 로컬 맛집, 감성 공간을 균형 있게 즐길 수 있습니다.`;
+
+          return {
+            dest: d,
+            score,
+            recDays,
+            recNights,
+            estTotal,
+            costBreakdown: { transport, accommodation, food, activities },
+            reason
+          };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+        // Ensure at least 3 recommendations
+        const top3 = scored.slice(0, 3);
+        const scopeDesc = prefs.scope === "domestic" ? "국내" : prefs.scope === "international" ? "해외" : "국내·해외";
+        const summary = `${prefs.departureCity} 출발 · ${prefs.companion} · 예산 ${prefs.budgetKrw.toLocaleString("ko-KR")}만원(${prefs.budgetBasis === "total" ? "일행 전체" : "1인 기준"}) 조건과 '${prefs.styles.slice(0, 4).join(", ")}' 취향을 분석해 가장 만족도가 높은 ${scopeDesc} 여행지 3곳을 선별했습니다.`;
+        return { summary, items: top3 };
+      }
+
+      // Calibrate itinerary stop costs so sum equals targetBudgetWon EXACTLY
+      function calibrateBudget(days, targetBudgetWon) {
+        const allStops = [];
+        days.forEach((d) => d.stops.forEach((s) => allStops.push(s)));
+        if (allStops.length === 0 || targetBudgetWon <= 0) return days;
+
+        const weights = { accommodation: 4, activity: 2, restaurant: 2, attraction: 1, cafe: 1 };
+        let paid = allStops.filter((s) => s.estimatedCostKrw > 0);
+        if (paid.length === 0) {
+          allStops.forEach((s) => { s.estimatedCostKrw = (weights[s.category] || 1) * 10000; });
+          paid = allStops;
+        }
+        const sum = paid.reduce((acc, s) => acc + s.estimatedCostKrw, 0);
+        const stepUnit = targetBudgetWon < paid.length * 1000 ? 100 : 1000;
+        let scaledSum = 0;
+        paid.forEach((s) => {
+          const rounded = Math.max(0, Math.round(((s.estimatedCostKrw / sum) * targetBudgetWon) / stepUnit) * stepUnit);
+          s.estimatedCostKrw = rounded;
+          scaledSum += rounded;
+        });
+
+        let diff = targetBudgetWon - scaledSum;
+        if (diff > 0) {
+          let anchor = paid[0];
+          paid.forEach((s) => { if (s.estimatedCostKrw > anchor.estimatedCostKrw) anchor = s; });
+          anchor.estimatedCostKrw += diff;
+        } else if (diff < 0) {
+          const sortedDesc = paid.slice().sort((a, b) => b.estimatedCostKrw - a.estimatedCostKrw);
+          for (let i = 0; i < sortedDesc.length && diff < 0; i++) {
+            const take = Math.min(sortedDesc[i].estimatedCostKrw, -diff);
+            sortedDesc[i].estimatedCostKrw -= take;
+            diff += take;
+          }
+        }
+        return days;
+      }
+
+      function buildItinerary(destObj, daysCount, budgetMan, preservedUserStops) {
+        const targetBudgetWon = budgetMan * 10000;
+        const pool = destObj.stopsPool;
+        const paceCount = state.prefs.pace === "relaxed" ? 3 : state.prefs.pace === "packed" ? 5 : 4;
+
+        const attractions = pool.filter((s) => s.category === "attraction" || s.category === "activity");
+        const restaurants = pool.filter((s) => s.category === "restaurant");
+        const cafes = pool.filter((s) => s.category === "cafe");
+        const accoms = pool.filter((s) => s.category === "accommodation");
+
+        const timeSlots = {
+          3: ["10:00", "12:30", "15:00", "20:00"],
+          4: ["09:30", "12:00", "14:30", "18:00", "20:30"],
+          5: ["09:00", "11:30", "13:30", "16:00", "18:30", "20:30"]
+        }[paceCount];
+
+        const days = [];
+        let attrCursor = 0;
+        let restCursor = 0;
+        let cafeCursor = 0;
+
+        for (let d = 1; d <= daysCount; d++) {
+          const stops = [];
+          const isLastDay = d === daysCount;
+
+          // Morning stop
+          const a1 = attractions[attrCursor % attractions.length];
+          attrCursor++;
+          stops.push(makeStop(a1, d, 0, timeSlots[0]));
+
+          // Lunch
+          const r1 = restaurants[restCursor % restaurants.length];
+          restCursor++;
+          stops.push(makeStop(r1, d, 1, timeSlots[1]));
+
+          // Afternoon Cafe or Attraction
+          if (paceCount >= 4) {
+            const c1 = cafes[cafeCursor % cafes.length];
+            cafeCursor++;
+            stops.push(makeStop(c1, d, 2, timeSlots[2]));
+
+            const a2 = attractions[attrCursor % attractions.length];
+            attrCursor++;
+            stops.push(makeStop(a2, d, 3, timeSlots[3]));
+          } else {
+            const c1 = cafes[cafeCursor % cafes.length];
+            cafeCursor++;
+            stops.push(makeStop(c1, d, 2, timeSlots[2]));
+          }
+
+          if (paceCount >= 5) {
+            const r2 = restaurants[restCursor % restaurants.length];
+            restCursor++;
+            stops.push(makeStop(r2, d, 4, timeSlots[4]));
+          }
+
+          // Accommodation at end of non-final days
+          if (!isLastDay && accoms.length > 0) {
+            const ac = accoms[(d - 1) % accoms.length];
+            stops.push(makeStop(ac, d, stops.length, "20:30"));
+          }
+
+          days.push({
+            dayNumber: d,
+            title: `${d}일차 · ${destObj.name} ${d === 1 ? "핵심 명소와 로컬 미식" : isLastDay ? "여유로운 산책과 마무리" : "감성 스팟과 야경 코스"}`,
+            areaFocus: `${destObj.name} 중심 권역 및 인접 명소`,
+            stops: recalcTransits(stops)
+          });
+        }
+
+        // Re-inject user-added custom stops if rebalancing
+        if (preservedUserStops && preservedUserStops.length > 0) {
+          preservedUserStops.forEach((uStop, i) => {
+            const targetDay = days[i % days.length];
+            targetDay.stops.splice(Math.max(0, targetDay.stops.length - 1), 0, uStop);
+            targetDay.stops = recalcTransits(targetDay.stops);
+          });
+        }
+
+        calibrateBudget(days, targetBudgetWon);
+
+        return {
+          destination: destObj,
+          daysCount,
+          budgetKrw: budgetMan,
+          routeStrategySummary: `${destObj.name} 내 지리적으로 가까운 스팟끼리 일차별로 묶어 불필요한 이동 역행을 줄이고, 선택하신 '${state.prefs.transport}' 기준 최적 동선과 ${budgetMan.toLocaleString("ko-KR")}만원 예산에 맞춰 비용을 배분했습니다.`,
+          days,
+          essentials: destObj.essentials
+        };
+      }
+
+      function makeStop(tpl, dayNum, idx, time) {
+        return {
+          id: `d${dayNum}-s${idx}-${Math.random().toString(36).slice(2, 6)}`,
+          time,
+          durationMinutes: tpl.duration,
+          name: tpl.name,
+          category: tpl.category,
+          description: tpl.desc,
+          tip: tpl.tip,
+          estimatedCostKrw: tpl.cost,
+          address: tpl.addr,
+          lat: tpl.lat,
+          lng: tpl.lng,
+          pros: tpl.pros || ["접근성이 좋고 현지 분위기가 뛰어남", "방문자 만족도가 높은 추천 스팟"],
+          recItems: tpl.recItems || ["시그니처 포인트", "대표 추천 메뉴"],
+          transitFromPrev: null,
+          isUserAdded: false
+        };
+      }
+
+      function optimizeDayRoute(stops) {
+        if (stops.length <= 2) {
+          return { stops, savedKm: 0 };
+        }
+        const beforeKm = totalDistanceKm(stops);
+        const lastIsHotel = stops[stops.length - 1].category === "accommodation";
+        const start = stops[0];
+        const endHotel = lastIsHotel ? stops[stops.length - 1] : null;
+        const middle = lastIsHotel ? stops.slice(1, -1) : stops.slice(1);
+
+        const ordered = [start];
+        const remaining = middle.slice();
+        while (remaining.length > 0) {
+          const cur = ordered[ordered.length - 1];
+          let bestIdx = 0;
+          let bestDist = Infinity;
+          for (let i = 0; i < remaining.length; i++) {
+            const d = haversineKm(cur.lat, cur.lng, remaining[i].lat, remaining[i].lng);
+            if (d < bestDist) {
+              bestDist = d;
+              bestIdx = i;
+            }
+          }
+          ordered.push(remaining.splice(bestIdx, 1)[0]);
+        }
+        if (endHotel) ordered.push(endHotel);
+
+        const origTimes = stops.map((s) => s.time);
+        const reTimed = ordered.map((s, idx) => Object.assign({}, s, { time: origTimes[idx] || s.time }));
+        const finalStops = recalcTransits(reTimed);
+        const afterKm = totalDistanceKm(finalStops);
+        return { stops: finalStops, savedKm: Math.max(0, Math.round((beforeKm - afterKm) * 10) / 10) };
+      }
+
+      function naverBlogUrl(destName, placeName) {
+        return "https://search.naver.com/search.naver?ssc=tab.blog.all&sm=tab_jum&query=" + encodeURIComponent(destName + " " + placeName + " 후기");
+      }
+
+      function naverMapUrl(destName, placeName) {
+        return "https://map.naver.com/p/search/" + encodeURIComponent(destName + " " + placeName);
+      }
+
+      function googleRouteUrl(stops) {
+        if (!stops.length) return "https://www.google.com/maps";
+        if (stops.length === 1) {
+          return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(stops[0].name + " " + stops[0].address);
+        }
+        const origin = encodeURIComponent(stops[0].lat + "," + stops[0].lng);
+        const dest = encodeURIComponent(stops[stops.length - 1].lat + "," + stops[stops.length - 1].lng);
+        const wps = stops.slice(1, -1).map((s) => s.lat + "," + s.lng).join("|");
+        return "https://www.google.com/maps/dir/?api=1&origin=" + origin + "&destination=" + dest + (wps ? "&waypoints=" + encodeURIComponent(wps) : "");
+      }
+
+      // Navigation & Step UI Sync
+      function updateChrome() {
+        const hero = document.getElementById("heroSection");
+        hero.classList.toggle("hidden", state.step !== "preferences");
+
+        document.querySelectorAll("[data-nav]").forEach((btn) => {
+          const target = btn.getAttribute("data-nav");
+          if (target === "recommendations") btn.disabled = state.recommendations.length === 0;
+          if (target === "itinerary" || target === "essentials") btn.disabled = !state.plan;
+          btn.classList.toggle("active", state.step === target || (target === "itinerary" && state.step === "itinerary"));
+        });
+
+        document.querySelectorAll("[data-step]").forEach((btn) => {
+          const target = btn.getAttribute("data-step");
+          if (target === "recommendations") btn.disabled = state.recommendations.length === 0;
+          if (target === "itinerary") btn.disabled = !state.plan;
+          btn.classList.toggle("active", state.step === target);
+        });
+
+        document.getElementById("viewPreferences").classList.toggle("hidden", state.step !== "preferences");
+        document.getElementById("viewRecommendations").classList.toggle("hidden", state.step !== "recommendations");
+        document.getElementById("viewItinerary").classList.toggle("hidden", state.step !== "itinerary");
+      }
+
+      function render() {
+        updateChrome();
+        if (state.step === "preferences") renderPreferences();
+        else if (state.step === "recommendations") renderRecommendations();
+        else if (state.step === "itinerary") renderItinerary();
+        renderModal();
+        renderDrawer();
+      }
+
+      function renderPreferences() {
+        const p = state.prefs;
+        const customStyles = p.styles.filter((s) => !PRESET_STYLES.includes(s));
+        const pct100 = ((100 - 10) / (500 - 10)) * 100;
+        const pct250 = ((250 - 10) / (500 - 10)) * 100;
+
+        const root = document.getElementById("viewPreferences");
+        root.innerHTML = `
+          <form id="prefForm" class="stack-lg">
+            <section class="card">
+              <div class="section-head">
+                <div>
+                  <h2 class="section-title">01. 선호하는 여행 스타일</h2>
+                  <p class="section-desc">원하는 키워드를 개수 제한 없이 자유롭게 선택하거나 직접 추가하세요.</p>
+                </div>
+                <span class="count-note tabular-nums">${p.styles.length}개 선택됨</span>
+              </div>
+              <div class="chip-wrap">
+                ${PRESET_STYLES.map((st) => `
+                  <button type="button" class="chip-btn ${p.styles.includes(st) ? "active" : ""}" data-toggle-style="${esc(st)}">${esc(st)}</button>
+                `).join("")}
+                ${customStyles.map((st) => `
+                  <button type="button" class="chip-btn active" data-toggle-style="${esc(st)}">${esc(st)} ✕</button>
+                `).join("")}
+              </div>
+              <div class="custom-style-row">
+                <input id="customStyleInput" type="text" class="input-text" value="${esc(state.customStyleDraft)}" placeholder="직접 입력 (예: 서핑, 건축 투어, 재즈바)" />
+                <button type="button" id="addCustomStyleBtn" class="btn-secondary">+ 스타일 추가</button>
+              </div>
+            </section>
+
+            <section class="card">
+              <h2 class="section-title">02. 출발 정보 및 예산 · 기간</h2>
+              <p class="section-desc" style="margin-bottom:20px;">출발지와 예산을 바탕으로 이동 효율이 좋은 목적지와 적정 기간을 산출합니다.</p>
+              <div class="grid-2">
+                <div>
+                  <label class="field-label" for="depCityInput">출발 지역</label>
+                  <input id="depCityInput" type="text" class="input-text" style="width:100%;" value="${esc(p.departureCity)}" placeholder="예: 서울, 부산, 판교..." />
+                  <div class="chip-wrap" style="margin-top:10px;gap:6px;">
+                    ${QUICK_DEPARTURES.map((c) => `
+                      <button type="button" class="chip-btn chip-btn-dark chip-sm ${p.departureCity === c ? "active" : ""}" data-dep-city="${esc(c)}">${esc(c)}</button>
+                    `).join("")}
+                  </div>
+                </div>
+                <div>
+                  <span class="field-label">여행 지역 범위</span>
+                  <div class="segmented segmented-full">
+                    ${[
+                      { v: "any", l: "국내·해외 모두" },
+                      { v: "domestic", l: "국내 여행" },
+                      { v: "international", l: "해외 여행" }
+                    ].map((opt) => `
+                      <button type="button" class="seg-btn ${p.scope === opt.v ? "active" : ""}" data-scope="${opt.v}">${opt.l}</button>
+                    `).join("")}
+                  </div>
+                  <span class="field-label" style="margin-top:18px;">희망 여행 기간</span>
+                  <div class="chip-wrap" style="gap:8px;">
+                    ${[
+                      { v: null, l: "AI 자동 추천" },
+                      { v: 2, l: "1박 2일" },
+                      { v: 3, l: "2박 3일" },
+                      { v: 4, l: "3박 4일" },
+                      { v: 5, l: "4박 5일" },
+                      { v: 6, l: "5박 6일" }
+                    ].map((d) => `
+                      <button type="button" class="chip-btn chip-btn-dark chip-sm ${p.preferredDays === d.v ? "active" : ""}" data-pref-days="${d.v === null ? "null" : d.v}">${d.l}</button>
+                    `).join("")}
+                  </div>
+                </div>
+              </div>
+
+              <div class="budget-box" style="margin-top:22px;">
+                <div class="budget-header">
+                  <div>
+                    <label class="field-label" for="budgetRange" style="margin-bottom:2px;">예상 예산</label>
+                    <p class="section-desc">교통, 숙박, 식비, 입장료를 포함한 총 예산을 설정하세요.</p>
+                  </div>
+                  <div class="budget-controls">
+                    <div class="segmented">
+                      <button type="button" class="seg-btn ${p.budgetBasis === "per_person" ? "active" : ""}" data-budget-basis="per_person">1인 기준</button>
+                      <button type="button" class="seg-btn ${p.budgetBasis === "total" ? "active" : ""}" data-budget-basis="total">일행 전체</button>
+                    </div>
+                    <div class="budget-input-wrap">
+                      <input id="budgetNumberInput" type="number" min="10" max="500" step="5" class="input-number" value="${p.budgetKrw}" aria-label="예산 만원 단위 입력" />
+                      <span style="font-size:14px;font-weight:500;">만원</span>
+                    </div>
+                  </div>
+                </div>
+                <input id="budgetRange" type="range" min="10" max="500" step="5" value="${p.budgetKrw}" class="range-slider" />
+                <div class="tick-track">
+                  <button type="button" class="tick-btn" style="left:0;" data-tick="10">10만원</button>
+                  <button type="button" class="tick-btn" style="left:${pct100}%;transform:translateX(-50%);" data-tick="100">100만원</button>
+                  <button type="button" class="tick-btn" style="left:${pct250}%;transform:translateX(-50%);" data-tick="250">250만원</button>
+                  <button type="button" class="tick-btn" style="right:0;" data-tick="500">500만원</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <h2 class="section-title">03. 동행자 · 이동 수단 · 여행 속도</h2>
+              <p class="section-desc" style="margin-bottom:20px;">동행 유형과 이동 방식에 맞춰 하루 방문 장소 수와 동선 반경을 조절합니다.</p>
+              <div class="stack-lg" style="gap:20px;">
+                <div>
+                  <span class="field-label">동행자</span>
+                  <div class="chip-wrap">
+                    ${COMPANIONS.map((c) => `
+                      <button type="button" class="chip-btn chip-btn-dark ${p.companion === c ? "active" : ""}" data-companion="${esc(c)}">${esc(c)}</button>
+                    `).join("")}
+                  </div>
+                </div>
+                <div>
+                  <span class="field-label">주요 이동 수단</span>
+                  <div class="chip-wrap">
+                    ${TRANSPORTS.map((t) => `
+                      <button type="button" class="chip-btn chip-btn-dark ${p.transport === t ? "active" : ""}" data-transport="${esc(t)}">${esc(t)}</button>
+                    `).join("")}
+                  </div>
+                </div>
+                <div>
+                  <span class="field-label">여행 속도</span>
+                  <div class="pace-grid">
+                    ${[
+                      { v: "relaxed", t: "여유롭게", d: "하루 3~4곳, 카페와 산책 시간 넉넉히" },
+                      { v: "balanced", t: "보통", d: "하루 4~5곳, 관광과 휴식의 균형 잡힌 템포" },
+                      { v: "packed", t: "알차게", d: "하루 6곳 이상, 핵심 스팟을 밀도 있게 탐방" }
+                    ].map((pc) => `
+                      <button type="button" class="pace-card ${p.pace === pc.v ? "active" : ""}" data-pace="${pc.v}">
+                        <div class="pace-title">${pc.t}</div>
+                        <div class="pace-desc">${pc.d}</div>
+                      </button>
+                    `).join("")}
+                  </div>
+                </div>
+                <div>
+                  <label class="field-label" for="notesInput">추가 요청사항 (선택)</label>
+                  <textarea id="notesInput" rows="2" class="input-textarea" placeholder="예: 해산물 알레르기 있음, 오션뷰 숙소 선호, 비 오는 날 실내 위주 희망 등">${esc(p.notes)}</textarea>
+                </div>
+              </div>
+            </section>
+
+            ${state.validationError ? `<div class="alert-error" role="alert">${esc(state.validationError)}</div>` : ""}
+
+            <div class="form-footer">
+              <div class="meta-inline" style="margin:0;">
+                <span>${esc(p.departureCity || "출발지 미정")} 출발</span>
+                <span>·</span>
+                <span>${esc(p.companion)}</span>
+                <span>·</span>
+                <span class="tabular-nums">예산 ${p.budgetKrw.toLocaleString("ko-KR")}만원</span>
+              </div>
+              <button type="submit" class="btn-cta">맞춤 여행지 3곳 추천받기 →</button>
+            </div>
+          </form>
+        `;
+
+        // Bind events
+        root.querySelectorAll("[data-toggle-style]").forEach((el) => {
+          el.addEventListener("click", () => {
+            const st = el.getAttribute("data-toggle-style");
+            const idx = state.prefs.styles.indexOf(st);
+            if (idx >= 0) state.prefs.styles.splice(idx, 1);
+            else state.prefs.styles.push(st);
+            state.validationError = "";
+            renderPreferences();
+          });
+        });
+
+        const customInput = document.getElementById("customStyleInput");
+        customInput.addEventListener("input", (e) => { state.customStyleDraft = e.target.value; });
+        customInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            addCustomStyle();
+          }
+        });
+        document.getElementById("addCustomStyleBtn").addEventListener("click", addCustomStyle);
+
+        function addCustomStyle() {
+          const val = state.customStyleDraft.trim();
+          if (!val) return;
+          if (!state.prefs.styles.includes(val)) state.prefs.styles.push(val);
+          state.customStyleDraft = "";
+          state.validationError = "";
+          renderPreferences();
+        }
+
+        const depInput = document.getElementById("depCityInput");
+        depInput.addEventListener("input", (e) => { state.prefs.departureCity = e.target.value; });
+        root.querySelectorAll("[data-dep-city]").forEach((el) => {
+          el.addEventListener("click", () => {
+            state.prefs.departureCity = el.getAttribute("data-dep-city");
+            renderPreferences();
+          });
+        });
+
+        root.querySelectorAll("[data-scope]").forEach((el) => {
+          el.addEventListener("click", () => {
+            state.prefs.scope = el.getAttribute("data-scope");
+            renderPreferences();
+          });
+        });
+
+        root.querySelectorAll("[data-pref-days]").forEach((el) => {
+          el.addEventListener("click", () => {
+            const v = el.getAttribute("data-pref-days");
+            state.prefs.preferredDays = v === "null" ? null : Number(v);
+            renderPreferences();
+          });
+        });
+
+        root.querySelectorAll("[data-budget-basis]").forEach((el) => {
+          el.addEventListener("click", () => {
+            state.prefs.budgetBasis = el.getAttribute("data-budget-basis");
+            renderPreferences();
+          });
+        });
+
+        const budgetNum = document.getElementById("budgetNumberInput");
+        const budgetRange = document.getElementById("budgetRange");
+        const syncBudgetDisplay = (val) => {
+          const clamped = Math.min(500, Math.max(10, Math.round(val)));
+          state.prefs.budgetKrw = clamped;
+          budgetRange.value = String(clamped);
+          const footerMeta = root.querySelector(".form-footer .tabular-nums");
+          if (footerMeta) footerMeta.textContent = "예산 " + clamped.toLocaleString("ko-KR") + "만원";
+        };
+
+        budgetRange.addEventListener("input", (e) => {
+          const v = Number(e.target.value);
+          budgetNum.value = String(v);
+          syncBudgetDisplay(v);
+        });
+
+        budgetNum.addEventListener("input", (e) => {
+          const str = e.target.value;
+          const n = Number(str);
+          if (str !== "" && !Number.isNaN(n)) {
+            syncBudgetDisplay(n);
+          }
+        });
+
+        budgetNum.addEventListener("blur", () => {
+          const n = Number(budgetNum.value);
+          const finalVal = budgetNum.value.trim() === "" || Number.isNaN(n) ? state.prefs.budgetKrw : Math.min(500, Math.max(10, Math.round(n)));
+          budgetNum.value = String(finalVal);
+          syncBudgetDisplay(finalVal);
+        });
+
+        root.querySelectorAll("[data-tick]").forEach((el) => {
+          el.addEventListener("click", () => {
+            const v = Number(el.getAttribute("data-tick"));
+            budgetNum.value = String(v);
+            syncBudgetDisplay(v);
+          });
+        });
+
+        root.querySelectorAll("[data-companion]").forEach((el) => {
+          el.addEventListener("click", () => {
+            state.prefs.companion = el.getAttribute("data-companion");
+            renderPreferences();
+          });
+        });
+
+        root.querySelectorAll("[data-transport]").forEach((el) => {
+          el.addEventListener("click", () => {
+            state.prefs.transport = el.getAttribute("data-transport");
+            renderPreferences();
+          });
+        });
+
+        root.querySelectorAll("[data-pace]").forEach((el) => {
+          el.addEventListener("click", () => {
+            state.prefs.pace = el.getAttribute("data-pace");
+            renderPreferences();
+          });
+        });
+
+        document.getElementById("notesInput").addEventListener("input", (e) => {
+          state.prefs.notes = e.target.value;
+        });
+
+        document.getElementById("prefForm").addEventListener("submit", (e) => {
+          e.preventDefault();
+          if (state.prefs.styles.length === 0) {
+            state.validationError = "최소 1개 이상의 여행 스타일을 선택해주세요.";
+            renderPreferences();
+            return;
+          }
+          if (!state.prefs.departureCity.trim()) {
+            state.validationError = "출발 지역을 입력해주세요.";
+            renderPreferences();
+            return;
+          }
+          const result = recommendDestinations(state.prefs);
+          state.analysisSummary = result.summary;
+          state.recommendations = result.items;
+          state.step = "recommendations";
+          render();
+          document.getElementById("workspaceRoot").scrollIntoView({ behavior: "smooth" });
+        });
+      }
+
+      function renderRecommendations() {
+        const root = document.getElementById("viewRecommendations");
+        root.innerHTML = `
+          <div class="stack-lg">
+            <div class="rec-header">
+              <div style="max-width:740px;">
+                <p style="font-size:12px;font-weight:600;color:var(--accent-blue);margin-bottom:6px;">취향 분석 결과</p>
+                <h2 style="font-size:26px;font-weight:700;letter-spacing:-0.02em;">당신을 위한 맞춤 여행지 3선</h2>
+                <p style="font-size:14px;color:var(--ink-secondary);margin-top:8px;">${esc(state.analysisSummary)}</p>
+              </div>
+              <button type="button" id="backToPrefBtn" class="btn-secondary">조건 다시 설정하기</button>
+            </div>
+
+            <div class="rec-grid">
+              ${state.recommendations.map((rec, idx) => {
+                const d = rec.dest;
+                const fallbackSvg = svgArtworkDataUrl(d.visual, d.name);
+                return `
+                  <article class="dest-card">
+                    <div class="dest-media">
+                      <img src="${fallbackSvg}" alt="${esc(d.name)} 대표 풍경" data-wiki="${esc(d.wiki)}" referrerPolicy="no-referrer" />
+                      <div class="dest-media-scrim"></div>
+                      <div class="dest-media-caption">
+                        <div class="dest-region">${esc(d.region)}</div>
+                        <h3 class="dest-name">${esc(d.name)}</h3>
+                      </div>
+                    </div>
+                    <div class="dest-body">
+                      <div class="meta-inline">
+                        <strong>0${idx + 1}</strong>
+                        <span>·</span>
+                        <span class="tabular-nums">${rec.recNights > 0 ? rec.recNights + "박 " + rec.recDays + "일" : "당일"} 추천</span>
+                        <span>·</span>
+                        <span class="tabular-nums" style="color:var(--accent-blue);font-weight:600;">예상 ${formatKrw(rec.estTotal)}</span>
+                        <span>·</span>
+                        <span>${esc(d.bestSeason)}</span>
+                      </div>
+                      <p class="dest-tagline">${esc(d.tagline)}</p>
+                      <p class="dest-reason">${esc(rec.reason)}</p>
+                      <div class="cost-grid">
+                        <div class="cost-row"><span>교통비</span><span class="tabular-nums">${formatKrw(rec.costBreakdown.transport)}</span></div>
+                        <div class="cost-row"><span>숙박비</span><span class="tabular-nums">${formatKrw(rec.costBreakdown.accommodation)}</span></div>
+                        <div class="cost-row"><span>식비·카페</span><span class="tabular-nums">${formatKrw(rec.costBreakdown.food)}</span></div>
+                        <div class="cost-row"><span>관광·기타</span><span class="tabular-nums">${formatKrw(rec.costBreakdown.activities)}</span></div>
+                      </div>
+                      <button type="button" class="btn-select-dest" data-pick-dest="${esc(d.id)}">이 여행지로 코스 생성하기 →</button>
+                    </div>
+                  </article>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        `;
+
+        root.querySelectorAll("img[data-wiki]").forEach((img) => {
+          hydrateWikiPhoto(img, img.getAttribute("data-wiki"));
+        });
+
+        document.getElementById("backToPrefBtn").addEventListener("click", () => {
+          state.step = "preferences";
+          render();
+        });
+
+        root.querySelectorAll("[data-pick-dest]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-pick-dest");
+            const rec = state.recommendations.find((r) => r.dest.id === id);
+            if (!rec) return;
+            state.plan = buildItinerary(rec.dest, rec.recDays, state.prefs.budgetKrw, []);
+            state.draftDays = state.plan.daysCount;
+            state.draftBudgetMan = state.plan.budgetKrw;
+            state.activeDayIdx = 0;
+            state.categoryFilter = "all";
+            state.activeStopId = null;
+            state.optimizationNotice = "";
+            state.step = "itinerary";
+            render();
+            document.getElementById("workspaceRoot").scrollIntoView({ behavior: "smooth" });
+          });
+        });
+      }
+
+      function renderRouteSvg(day) {
+        const stops = day.stops.filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lng) && (s.lat !== 0 || s.lng !== 0));
+        if (!stops.length) {
+          return `<div style="padding:32px;text-align:center;font-size:12px;color:#64748b;">표시할 좌표 정보가 없습니다.</div>`;
+        }
+        const lats = stops.map((s) => s.lat);
+        const lngs = stops.map((s) => s.lng);
+        const minLat = Math.min(...lats);
+        const maxLat = Math.max(...lats);
+        const minLng = Math.min(...lngs);
+        const maxLng = Math.max(...lngs);
+        const latSpan = Math.max(0.012, maxLat - minLat);
+        const lngSpan = Math.max(0.012, maxLng - minLng);
+
+        const W = 440, H = 280, px = 52, py = 44;
+        const pts = stops.map((s, idx) => {
+          const x = stops.length === 1 ? W / 2 : px + ((s.lng - minLng) / lngSpan) * (W - px * 2);
+          const y = stops.length === 1 ? H / 2 : py + (1 - (s.lat - minLat) / latSpan) * (H - py * 2);
+          return { stop: s, idx: idx + 1, x, y };
+        });
+
+        const pathD = pts.length >= 2 ? pts.map((pt, i) => (i === 0 ? "M " : "L ") + pt.x.toFixed(1) + " " + pt.y.toFixed(1)).join(" ") : "";
+
+        return `
+          <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;" role="img" aria-label="${day.dayNumber}일차 이동 경로 지도">
+            <defs>
+              <pattern id="rgrid" width="44" height="44" patternUnits="userSpaceOnUse">
+                <path d="M 44 0 L 0 0 0 44" fill="none" stroke="#e2e8f0" stroke-width="0.7" />
+              </pattern>
+            </defs>
+            <rect width="${W}" height="${H}" fill="url(#rgrid)" />
+            ${pathD ? `<path d="${pathD}" fill="none" stroke="#93c5fd" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" /><path d="${pathD}" fill="none" stroke="#1d4ed8" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" stroke-linejoin="round" />` : ""}
+            ${pts.map((pt, i) => {
+              if (i === 0) return "";
+              const prev = pts[i - 1];
+              const mx = (prev.x + pt.x) / 2;
+              const my = (prev.y + pt.y) / 2;
+              const dist = pt.stop.transitFromPrev ? pt.stop.transitFromPrev.distanceKm : 0;
+              if (!dist) return "";
+              return `<rect x="${mx - 20}" y="${my - 9}" width="40" height="18" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8" /><text x="${mx}" y="${my + 3.5}" text-anchor="middle" font-size="9" font-family="JetBrains Mono, monospace" fill="#334155">${dist.toFixed(1)}km</text>`;
+            }).join("")}
+            ${pts.map((pt) => {
+              const sel = state.activeStopId === pt.stop.id;
+              const color = (CATEGORY_META[pt.stop.category] && CATEGORY_META[pt.stop.category].color) || "#1d4ed8";
+              const label = pt.stop.name.length > 9 ? pt.stop.name.slice(0, 9) + "…" : pt.stop.name;
+              const ly = pt.y > 235 ? pt.y - 18 : pt.y + 23;
+              return `
+                <g data-pin-id="${esc(pt.stop.id)}" style="cursor:pointer;">
+                  ${sel ? `<circle cx="${pt.x}" cy="${pt.y}" r="17" fill="none" stroke="#1d4ed8" stroke-width="2" opacity="0.45" />` : ""}
+                  <circle cx="${pt.x}" cy="${pt.y}" r="${sel ? 13 : 11}" fill="${color}" stroke="#ffffff" stroke-width="2.5" />
+                  <text x="${pt.x}" y="${pt.y + 4}" text-anchor="middle" font-size="10" font-weight="700" font-family="JetBrains Mono, monospace" fill="#ffffff">${pt.idx}</text>
+                  <text x="${pt.x}" y="${ly}" text-anchor="middle" font-size="10.5" font-weight="${sel ? 700 : 500}" fill="#0f172a">${esc(label)}</text>
+                </g>
+              `;
+            }).join("")}
+          </svg>
+        `;
+      }
+
+      function renderItinerary() {
+        const plan = state.plan;
+        if (!plan) return;
+        const curDay = plan.days[state.activeDayIdx] || plan.days[0];
+        const totalCost = plan.days.reduce((a, d) => a + d.stops.reduce((b, s) => b + (s.estimatedCostKrw || 0), 0), 0);
+        const visibleStops = state.categoryFilter === "all" ? curDay.stops : curDay.stops.filter((s) => s.category === state.categoryFilter);
+        const dayKm = totalDistanceKm(curDay.stops);
+        const dayMins = curDay.stops.reduce((a, s) => a + (s.transitFromPrev ? s.transitFromPrev.minutes : 0), 0);
+        const checkedDone = plan.essentials.packingChecklist.filter((i) => state.checkedPacking[i]).length;
+
+        const root = document.getElementById("viewItinerary");
+        root.innerHTML = `
+          <div class="stack-lg">
+            <section class="card">
+              <div class="workspace-top">
+                <div>
+                  <button type="button" id="backToRecBtn" style="background:none;border:none;padding:0;font-size:12px;font-weight:500;color:var(--ink-muted);margin-bottom:8px;">← 추천 여행지 3선으로 돌아가기</button>
+                  <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;">
+                    <h2 style="font-size:26px;font-weight:700;letter-spacing:-0.02em;">${esc(plan.destination.name)} 맞춤 여행 코스</h2>
+                    <span style="font-size:14px;color:var(--ink-muted);">${esc(plan.destination.region)}</span>
+                  </div>
+                  <p style="font-size:14px;color:var(--ink-secondary);margin-top:6px;max-width:760px;">${esc(plan.routeStrategySummary)}</p>
+                </div>
+                <div style="text-align:right;flex-shrink:0;">
+                  <div style="font-size:12px;color:var(--ink-muted);">일정 내 예상 지출</div>
+                  <div class="tabular-nums" style="font-size:22px;font-weight:700;">${formatKrw(totalCost)}</div>
+                  <div class="tabular-nums" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">선택 예산 ${formatKrw(plan.budgetKrw * 10000)} 기준</div>
+                </div>
+              </div>
+
+              <div class="rebalance-bar">
+                <div class="rebalance-controls">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:12px;font-weight:600;color:var(--ink-secondary);">여행 기간</span>
+                    <div class="stepper">
+                      <button type="button" id="decDaysBtn" class="stepper-btn" ${state.draftDays <= 1 ? "disabled" : ""} aria-label="기간 줄이기">−</button>
+                      <span class="stepper-val">${state.draftDays > 1 ? (state.draftDays - 1) + "박 " + state.draftDays + "일" : "당일치기"}</span>
+                      <button type="button" id="incDaysBtn" class="stepper-btn" ${state.draftDays >= 10 ? "disabled" : ""} aria-label="기간 늘리기">+</button>
+                    </div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <label for="rebalanceBudgetInput" style="font-size:12px;font-weight:600;color:var(--ink-secondary);">목표 예산</label>
+                    <input id="rebalanceBudgetInput" type="number" min="10" max="500" step="5" class="input-number" style="width:82px;padding:6px 8px;font-size:12px;" value="${state.draftBudgetMan}" />
+                    <span style="font-size:12px;color:var(--ink-secondary);">만원</span>
+                  </div>
+                </div>
+                <button type="button" id="applyRebalanceBtn" class="${state.draftBudgetMan !== plan.budgetKrw ? "btn-cta" : "btn-secondary"}" style="padding:8px 16px;font-size:12px;">
+                  ${state.draftBudgetMan !== plan.budgetKrw ? "변경된 예산으로 재구성하기" : "기간·예산 기준 일정 재구성"}
+                </button>
+              </div>
+            </section>
+
+            <div class="tabs-bar">
+              <div class="segmented">
+                ${plan.days.map((d, idx) => `
+                  <button type="button" class="seg-btn ${state.activeDayIdx === idx ? "active" : ""}" data-day-tab="${idx}">${d.dayNumber}일차</button>
+                `).join("")}
+              </div>
+              <div class="chip-wrap" style="gap:6px;">
+                ${[
+                  { v: "all", l: "전체" },
+                  { v: "attraction", l: "관광지" },
+                  { v: "restaurant", l: "맛집" },
+                  { v: "cafe", l: "감성 카페" },
+                  { v: "accommodation", l: "숙박 시설" },
+                  { v: "activity", l: "액티비티" }
+                ].map((f) => `
+                  <button type="button" class="chip-btn chip-btn-dark chip-sm ${state.categoryFilter === f.v ? "active" : ""}" data-cat-filter="${f.v}">${f.l}</button>
+                `).join("")}
+              </div>
+            </div>
+
+            <div class="workspace-split">
+              <div class="stack-lg" style="gap:12px;">
+                <div class="day-head">
+                  <div>
+                    <h3 style="font-size:16px;font-weight:700;">${esc(curDay.title)}</h3>
+                    <p style="font-size:12px;color:var(--ink-muted);margin-top:2px;">핵심 권역: ${esc(curDay.areaFocus)}</p>
+                  </div>
+                  <button type="button" id="openAddModalBtn" class="btn-cta" style="padding:8px 14px;font-size:12px;">+ 장소 추가</button>
+                </div>
+
+                ${visibleStops.length === 0 ? `
+                  <div class="card" style="text-align:center;padding:36px;">
+                    <p style="font-size:14px;color:var(--ink-secondary);margin-bottom:12px;">해당 카테고리에 등록된 일정이 없습니다.</p>
+                    <button type="button" id="resetCatBtn" class="btn-secondary" style="font-size:12px;">전체 일정 보기</button>
+                  </div>
+                ` : visibleStops.map((stop) => {
+                  const realIdx = curDay.stops.findIndex((s) => s.id === stop.id);
+                  const meta = CATEGORY_META[stop.category] || CATEGORY_META.attraction;
+                  const sel = state.activeStopId === stop.id;
+                  return `
+                    ${stop.transitFromPrev && state.categoryFilter === "all" ? `
+                      <div class="transit-connector">
+                        <span class="transit-line" aria-hidden="true"></span>
+                        <span class="tabular-nums">${esc(stop.transitFromPrev.summary)}</span>
+                      </div>
+                    ` : ""}
+                    <article class="stop-card ${sel ? "selected" : ""}" data-stop-card="${esc(stop.id)}">
+                      <div class="stop-top">
+                        <div style="flex:1;min-width:0;">
+                          <div class="meta-inline" style="margin-bottom:6px;">
+                            <span class="pin-num" style="background:${meta.color};">${realIdx + 1}</span>
+                            <strong class="tabular-nums">${esc(stop.time)}</strong>
+                            <span>·</span>
+                            <span style="font-weight:600;color:${meta.textColor};">${meta.label}</span>
+                            <span>·</span>
+                            <span class="tabular-nums">${stop.durationMinutes}분 체류</span>
+                            <span>·</span>
+                            <span class="tabular-nums" style="color:var(--ink-primary);">${formatKrw(stop.estimatedCostKrw)}</span>
+                            ${stop.isUserAdded ? `<span>·</span><span style="color:var(--accent-blue);font-weight:600;">직접 추가</span>` : ""}
+                          </div>
+                          <h4 style="font-size:16px;font-weight:700;margin-bottom:4px;">${esc(stop.name)}</h4>
+                          <p style="font-size:13px;color:var(--ink-secondary);line-height:1.6;">${esc(stop.description)}</p>
+                          ${stop.tip ? `<p style="font-size:12px;color:var(--ink-muted);margin-top:6px;">팁: ${esc(stop.tip)}</p>` : ""}
+                          <p style="font-size:11px;color:#94a3b8;margin-top:4px;">${esc(stop.address)}</p>
+                        </div>
+                        <div class="stop-actions">
+                          <button type="button" class="icon-btn" data-move-up="${realIdx}" ${realIdx <= 0 ? "disabled" : ""} aria-label="위로 이동">↑</button>
+                          <button type="button" class="icon-btn" data-move-down="${realIdx}" ${realIdx >= curDay.stops.length - 1 ? "disabled" : ""} aria-label="아래로 이동">↓</button>
+                          <button type="button" class="icon-btn danger" data-remove-stop="${esc(stop.id)}" aria-label="${esc(stop.name)} 삭제">✕</button>
+                        </div>
+                      </div>
+                      <div class="stop-footer">
+                        <button type="button" class="btn-blog" data-open-review="${esc(stop.id)}">후기 요약 및 블로그 찾기</button>
+                        <a href="${naverBlogUrl(plan.destination.name, stop.name)}" target="_blank" rel="noopener noreferrer" class="link-subtle">네이버 블로그 새 창으로 검색 ↗</a>
+                      </div>
+                    </article>
+                  `;
+                }).join("")}
+              </div>
+
+              <aside class="sticky-col card" style="padding:20px;gap:16px;display:flex;flex-direction:column;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                  <div>
+                    <h3 style="font-size:15px;font-weight:700;">${curDay.dayNumber}일차 이동 경로 시각화</h3>
+                    <p class="tabular-nums" style="font-size:12px;color:var(--ink-muted);margin-top:2px;">총 ${curDay.stops.length}곳 · 예상 이동 ${dayKm.toFixed(1)}km · 약 ${dayMins}분</p>
+                  </div>
+                  <button type="button" id="optimizeRouteBtn" class="btn-secondary" style="font-size:12px;padding:7px 12px;color:var(--accent-blue);background:var(--accent-blue-soft);border-color:#bfdbfe;" ${curDay.stops.length < 3 ? "disabled" : ""}>동선 최적화</button>
+                </div>
+                ${state.optimizationNotice ? `<div class="notice-green">${esc(state.optimizationNotice)}</div>` : ""}
+                <div class="route-svg-wrap">${renderRouteSvg(curDay)}</div>
+                <div class="route-list">
+                  ${curDay.stops.map((s, idx) => {
+                    const meta = CATEGORY_META[s.category] || CATEGORY_META.attraction;
+                    return `
+                      <button type="button" class="route-item-btn ${state.activeStopId === s.id ? "active" : ""}" data-route-item="${esc(s.id)}">
+                        <span style="display:flex;align-items:center;gap:8px;min-width:0;">
+                          <span class="pin-num" style="background:${meta.color};width:20px;height:20px;font-size:10px;">${idx + 1}</span>
+                          <span style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(s.name)}</span>
+                        </span>
+                        <span class="tabular-nums" style="font-size:11px;color:var(--ink-muted);white-space:nowrap;">
+                          ${s.transitFromPrev ? esc(s.transitFromPrev.mode) + " " + s.transitFromPrev.minutes + "분" : "출발지"}
+                        </span>
+                      </button>
+                    `;
+                  }).join("")}
+                </div>
+                <div class="map-links">
+                  <a href="${googleRouteUrl(curDay.stops)}" target="_blank" rel="noopener noreferrer" class="map-link-btn" style="background:var(--bg-canvas);color:var(--ink-primary);border:1px solid var(--border-hairline);">Google 지도 경로 ↗</a>
+                  <a href="${naverMapUrl(plan.destination.name, (curDay.stops[0] && curDay.stops[0].name) || plan.destination.name)}" target="_blank" rel="noopener noreferrer" class="map-link-btn" style="background:var(--accent-green-soft);color:var(--accent-green);border:1px solid #a7f3d0;">네이버 지도 보기 ↗</a>
+                </div>
+              </aside>
+            </div>
+
+            <section id="travelEssentials" style="padding-top:16px;">
+              <div style="border-bottom:1px solid var(--border-hairline);padding-bottom:12px;margin-bottom:20px;">
+                <p style="font-size:12px;font-weight:600;color:var(--accent-blue);">여행 필수 브리핑</p>
+                <h3 style="font-size:20px;font-weight:700;margin-top:4px;">${esc(plan.destination.name)} 여행 전 꼭 알아야 할 정보</h3>
+              </div>
+              <div class="grid-2">
+                <div class="card stack-lg" style="gap:18px;">
+                  <div>
+                    <h4 style="font-size:14px;font-weight:700;margin-bottom:6px;">날씨 및 옷차림 가이드</h4>
+                    <p style="font-size:13px;color:var(--ink-secondary);">${esc(plan.essentials.weatherAndClothing)}</p>
+                  </div>
+                  <div style="padding-top:16px;border-top:1px solid var(--bg-subtle);">
+                    <h4 style="font-size:14px;font-weight:700;margin-bottom:6px;">현지 교통 및 패스 활용 팁</h4>
+                    <p style="font-size:13px;color:var(--ink-secondary);">${esc(plan.essentials.transitGuide)}</p>
+                  </div>
+                  <div style="padding-top:16px;border-top:1px solid var(--bg-subtle);">
+                    <h4 style="font-size:14px;font-weight:700;margin-bottom:6px;">예산 및 결제 팁</h4>
+                    <p style="font-size:13px;color:var(--ink-secondary);">${esc(plan.essentials.budgetTips)}</p>
+                  </div>
+                </div>
+                <div class="card stack-lg" style="gap:18px;">
+                  <div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                      <h4 style="font-size:14px;font-weight:700;">준비물 체크리스트</h4>
+                      <span class="tabular-nums" style="font-size:12px;color:var(--ink-muted);">${checkedDone} / ${plan.essentials.packingChecklist.length} 완료</span>
+                    </div>
+                    <div class="checklist-grid">
+                      ${plan.essentials.packingChecklist.map((item) => {
+                        const done = Boolean(state.checkedPacking[item]);
+                        return `
+                          <button type="button" class="check-item ${done ? "done" : ""}" data-check-item="${esc(item)}">
+                            <span class="check-box">${done ? "✓" : ""}</span>
+                            <span>${esc(item)}</span>
+                          </button>
+                        `;
+                      }).join("")}
+                    </div>
+                  </div>
+                  <div style="padding-top:16px;border-top:1px solid var(--bg-subtle);">
+                    <h4 style="font-size:14px;font-weight:700;margin-bottom:6px;">현지 문화 및 주의사항</h4>
+                    <ul style="margin:0;padding-left:18px;font-size:13px;color:var(--ink-secondary);">
+                      ${plan.essentials.culturalAndSafetyTips.map((t) => `<li style="margin-bottom:4px;">${esc(t)}</li>`).join("")}
+                    </ul>
+                  </div>
+                  <div style="padding-top:16px;border-top:1px solid var(--bg-subtle);">
+                    <h4 style="font-size:14px;font-weight:700;margin-bottom:4px;">비상 연락 및 참고사항</h4>
+                    <p style="font-size:12px;color:var(--ink-muted);">${esc(plan.essentials.emergencyInfo)}</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        `;
+
+        // Bind itinerary workspace handlers
+        document.getElementById("backToRecBtn").addEventListener("click", () => {
+          state.step = "recommendations";
+          render();
+        });
+
+        document.getElementById("decDaysBtn").addEventListener("click", () => {
+          if (state.draftDays <= 1) return;
+          triggerRebalance(state.draftDays - 1, state.draftBudgetMan);
+        });
+        document.getElementById("incDaysBtn").addEventListener("click", () => {
+          if (state.draftDays >= 10) return;
+          triggerRebalance(state.draftDays + 1, state.draftBudgetMan);
+        });
+
+        const rebBudget = document.getElementById("rebalanceBudgetInput");
+        rebBudget.addEventListener("input", (e) => {
+          const n = Number(e.target.value);
+          if (!Number.isNaN(n) && n >= 10) state.draftBudgetMan = Math.min(500, n);
+          const btn = document.getElementById("applyRebalanceBtn");
+          if (btn) {
+            const changed = state.draftBudgetMan !== state.plan.budgetKrw;
+            btn.className = changed ? "btn-cta" : "btn-secondary";
+            btn.textContent = changed ? "변경된 예산으로 재구성하기" : "기간·예산 기준 일정 재구성";
+          }
+        });
+        rebBudget.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") triggerRebalance(state.draftDays, state.draftBudgetMan);
+        });
+        document.getElementById("applyRebalanceBtn").addEventListener("click", () => {
+          triggerRebalance(state.draftDays, state.draftBudgetMan);
+        });
+
+        root.querySelectorAll("[data-day-tab]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            state.activeDayIdx = Number(btn.getAttribute("data-day-tab"));
+            state.optimizationNotice = "";
+            state.activeStopId = null;
+            renderItinerary();
+          });
+        });
+
+        root.querySelectorAll("[data-cat-filter]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            state.categoryFilter = btn.getAttribute("data-cat-filter");
+            renderItinerary();
+          });
+        });
+
+        const resetCat = document.getElementById("resetCatBtn");
+        if (resetCat) {
+          resetCat.addEventListener("click", () => {
+            state.categoryFilter = "all";
+            renderItinerary();
+          });
+        }
+
+        document.getElementById("openAddModalBtn").addEventListener("click", () => {
+          state.addModalOpen = true;
+          renderModal();
+        });
+
+        root.querySelectorAll("[data-stop-card]").forEach((card) => {
+          card.addEventListener("click", (e) => {
+            if (e.target.closest("button") || e.target.closest("a")) return;
+            state.activeStopId = card.getAttribute("data-stop-card");
+            renderItinerary();
+          });
+        });
+
+        root.querySelectorAll("[data-pin-id], [data-route-item]").forEach((el) => {
+          el.addEventListener("click", () => {
+            state.activeStopId = el.getAttribute("data-pin-id") || el.getAttribute("data-route-item");
+            renderItinerary();
+          });
+        });
+
+        root.querySelectorAll("[data-move-up]").forEach((btn) => {
+          btn.addEventListener("click", () => moveStop(Number(btn.getAttribute("data-move-up")), -1));
+        });
+        root.querySelectorAll("[data-move-down]").forEach((btn) => {
+          btn.addEventListener("click", () => moveStop(Number(btn.getAttribute("data-move-down")), 1));
+        });
+        root.querySelectorAll("[data-remove-stop]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-remove-stop");
+            curDay.stops = recalcTransits(curDay.stops.filter((s) => s.id !== id));
+            state.optimizationNotice = "";
+            renderItinerary();
+          });
+        });
+
+        root.querySelectorAll("[data-open-review]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-open-review");
+            state.reviewStop = curDay.stops.find((s) => s.id === id) || null;
+            renderDrawer();
+          });
+        });
+
+        document.getElementById("optimizeRouteBtn").addEventListener("click", () => {
+          const res = optimizeDayRoute(curDay.stops);
+          curDay.stops = res.stops;
+          state.optimizationNotice = res.savedKm > 0.1
+            ? `동선 최적화 완료: 불필요한 역행을 줄여 이동 거리를 ${res.savedKm.toFixed(1)}km 단축했습니다.`
+            : "현재 일정이 이미 가장 효율적인 이동 경로로 배치되어 있습니다.";
+          renderItinerary();
+        });
+
+        root.querySelectorAll("[data-check-item]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const key = btn.getAttribute("data-check-item");
+            state.checkedPacking[key] = !state.checkedPacking[key];
+            renderItinerary();
+          });
+        });
+      }
+
+      function moveStop(idx, delta) {
+        const curDay = state.plan.days[state.activeDayIdx];
+        const target = idx + delta;
+        if (target < 0 || target >= curDay.stops.length) return;
+        const arr = curDay.stops.slice();
+        const item = arr.splice(idx, 1)[0];
+        arr.splice(target, 0, item);
+        curDay.stops = recalcTransits(arr);
+        state.optimizationNotice = "";
+        renderItinerary();
+      }
+
+      function triggerRebalance(newDays, newBudgetMan) {
+        const clampedDays = Math.min(10, Math.max(1, newDays));
+        const clampedBudget = Math.min(500, Math.max(10, newBudgetMan));
+        const userStops = [];
+        state.plan.days.forEach((d) => {
+          d.stops.forEach((s) => { if (s.isUserAdded) userStops.push(s); });
+        });
+        state.plan = buildItinerary(state.plan.destination, clampedDays, clampedBudget, userStops);
+        state.draftDays = clampedDays;
+        state.draftBudgetMan = clampedBudget;
+        if (state.activeDayIdx >= state.plan.days.length) state.activeDayIdx = 0;
+        state.optimizationNotice = "";
+        renderItinerary();
+      }
+
+      function renderModal() {
+        const modalRoot = document.getElementById("modalRoot");
+        if (!state.addModalOpen || !state.plan) {
+          modalRoot.innerHTML = "";
+          return;
+        }
+        const curDay = state.plan.days[state.activeDayIdx];
+        const existingNames = state.plan.days.flatMap((d) => d.stops.map((s) => s.name));
+        const poolOptions = state.plan.destination.stopsPool.filter(
+          (p) => !existingNames.includes(p.name) && (state.addModalCategory === "all" || p.category === state.addModalCategory)
+        );
+        const fallbackOptions = poolOptions.length ? poolOptions : state.plan.destination.stopsPool.filter((p) => p.category === state.addModalCategory);
+
+        modalRoot.innerHTML = `
+          <div class="backdrop backdrop-center" id="modalBackdrop" role="dialog" aria-modal="true">
+            <div class="modal-panel">
+              <div class="modal-head">
+                <div>
+                  <h3 style="font-size:16px;font-weight:700;">${curDay.dayNumber}일차에 장소 추가</h3>
+                  <p style="font-size:12px;color:var(--ink-muted);margin-top:2px;">원하는 장소를 직접 입력하거나 ${esc(state.plan.destination.name)} 추천 장소를 골라 추가하세요.</p>
+                </div>
+                <button type="button" id="closeModalBtn" class="icon-btn" aria-label="닫기">✕</button>
+              </div>
+              <div class="modal-body">
+                <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;">
+                  <div class="segmented">
+                    <button type="button" class="seg-btn ${state.addModalTab === "custom" ? "active" : ""}" data-mtab="custom">직접 장소 입력</button>
+                    <button type="button" class="seg-btn ${state.addModalTab === "discover" ? "active" : ""}" data-mtab="discover">주변 추천 장소</button>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <label for="addTimeInput" style="font-size:12px;color:var(--ink-secondary);">방문 시간</label>
+                    <input id="addTimeInput" type="time" class="input-time" value="15:00" style="padding:6px 10px;font-size:12px;" />
+                  </div>
+                </div>
+
+                ${state.addModalTab === "custom" ? `
+                  <form id="customAddForm" class="stack-lg" style="gap:12px;">
+                    <div>
+                      <label class="field-label" for="customPlaceName">장소명</label>
+                      <input id="customPlaceName" type="text" class="input-text" style="width:100%;" placeholder="예: 추가하고 싶은 맛집, 카페, 관광지 이름" required />
+                    </div>
+                    <div>
+                      <span class="field-label">카테고리</span>
+                      <div class="chip-wrap" style="gap:6px;">
+                        ${Object.keys(CATEGORY_META).map((cat) => `
+                          <button type="button" class="chip-btn chip-btn-dark chip-sm ${state.addModalCategory === cat ? "active" : ""}" data-mcat="${cat}">${CATEGORY_META[cat].label}</button>
+                        `).join("")}
+                      </div>
+                    </div>
+                    <div class="grid-2" style="gap:12px;">
+                      <div>
+                        <label class="field-label" for="customPlaceCost">예상 비용 (원)</label>
+                        <input id="customPlaceCost" type="number" min="0" step="1000" class="input-number" style="width:100%;text-align:left;" value="15000" />
+                      </div>
+                      <div>
+                        <label class="field-label" for="customPlaceMemo">간단 메모 (선택)</label>
+                        <input id="customPlaceMemo" type="text" class="input-text" style="width:100%;" placeholder="예: 예약 필수, 시그니처 메뉴" />
+                      </div>
+                    </div>
+                    <button type="submit" class="btn-cta" style="width:100%;">일정에 추가하기</button>
+                  </form>
+                ` : `
+                  <div class="chip-wrap" style="gap:6px;">
+                    ${Object.keys(CATEGORY_META).map((cat) => `
+                      <button type="button" class="chip-btn chip-btn-dark chip-sm ${state.addModalCategory === cat ? "active" : ""}" data-mcat="${cat}">${CATEGORY_META[cat].label}</button>
+                    `).join("")}
+                  </div>
+                  <div class="stack-lg" style="gap:10px;">
+                    ${fallbackOptions.map((p, i) => `
+                      <div style="padding:14px;border:1px solid var(--border-hairline);border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:14px;">
+                        <div style="min-width:0;">
+                          <div class="meta-inline" style="margin-bottom:4px;">
+                            <span style="font-weight:600;color:${CATEGORY_META[p.category].textColor};">${CATEGORY_META[p.category].label}</span>
+                            <span>·</span>
+                            <span class="tabular-nums">${p.duration}분</span>
+                            <span>·</span>
+                            <span class="tabular-nums">${formatKrw(p.cost)}</span>
+                          </div>
+                          <div style="font-size:14px;font-weight:700;">${esc(p.name)}</div>
+                          <p style="font-size:12px;color:var(--ink-secondary);margin-top:2px;">${esc(p.desc)}</p>
+                        </div>
+                        <button type="button" class="btn-primary-sm" data-add-pool="${i}">+ 추가</button>
+                      </div>
+                    `).join("")}
+                  </div>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById("closeModalBtn").addEventListener("click", () => {
+          state.addModalOpen = false;
+          renderModal();
+        });
+        document.getElementById("modalBackdrop").addEventListener("click", (e) => {
+          if (e.target.id === "modalBackdrop") {
+            state.addModalOpen = false;
+            renderModal();
+          }
+        });
+        modalRoot.querySelectorAll("[data-mtab]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            state.addModalTab = btn.getAttribute("data-mtab");
+            renderModal();
+          });
+        });
+        modalRoot.querySelectorAll("[data-mcat]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            state.addModalCategory = btn.getAttribute("data-mcat");
+            renderModal();
+          });
+        });
+
+        const customForm = document.getElementById("customAddForm");
+        if (customForm) {
+          customForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const name = document.getElementById("customPlaceName").value.trim();
+            if (!name) return;
+            const time = document.getElementById("addTimeInput").value || "15:00";
+            const cost = Number(document.getElementById("customPlaceCost").value) || 0;
+            const memo = document.getElementById("customPlaceMemo").value.trim();
+            const anchor = curDay.stops[0] || { lat: 37.5665, lng: 126.978 };
+            const jitter = (Math.random() - 0.5) * 0.01;
+            const stop = {
+              id: "user-" + Date.now(),
+              time,
+              durationMinutes: 60,
+              name,
+              category: state.addModalCategory,
+              description: memo || `${state.plan.destination.name} 일정에 사용자가 직접 추가한 장소입니다.`,
+              tip: "방문 전 영업시간과 휴무일을 확인하세요.",
+              estimatedCostKrw: cost,
+              address: state.plan.destination.name,
+              lat: anchor.lat + jitter,
+              lng: anchor.lng + jitter,
+              pros: ["사용자 맞춤 선호 장소"],
+              recItems: ["현장 추천 포인트"],
+              transitFromPrev: null,
+              isUserAdded: true
+            };
+            curDay.stops = recalcTransits([...curDay.stops, stop].sort((a, b) => a.time.localeCompare(b.time)));
+            state.activeStopId = stop.id;
+            state.addModalOpen = false;
+            render();
+          });
+        }
+
+        modalRoot.querySelectorAll("[data-add-pool]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const tpl = fallbackOptions[Number(btn.getAttribute("data-add-pool"))];
+            if (!tpl) return;
+            const time = document.getElementById("addTimeInput").value || "15:00";
+            const stop = makeStop(tpl, curDay.dayNumber, curDay.stops.length + 1, time);
+            stop.isUserAdded = true;
+            curDay.stops = recalcTransits([...curDay.stops, stop].sort((a, b) => a.time.localeCompare(b.time)));
+            state.activeStopId = stop.id;
+            state.addModalOpen = false;
+            render();
+          });
+        });
+      }
+
+      function renderDrawer() {
+        const drawerRoot = document.getElementById("drawerRoot");
+        if (!state.reviewStop || !state.plan) {
+          drawerRoot.innerHTML = "";
+          return;
+        }
+        const s = state.reviewStop;
+        const meta = CATEGORY_META[s.category] || CATEGORY_META.attraction;
+        const blogUrl = naverBlogUrl(state.plan.destination.name, s.name);
+        const mapUrl = naverMapUrl(state.plan.destination.name, s.name);
+
+        drawerRoot.innerHTML = `
+          <div class="backdrop backdrop-right" id="drawerBackdrop" role="dialog" aria-modal="true">
+            <aside class="drawer-panel">
+              <div class="modal-head">
+                <div style="min-width:0;">
+                  <div class="meta-inline" style="margin-bottom:4px;">
+                    <span style="font-weight:600;color:${meta.textColor};">${meta.label}</span>
+                    <span>·</span>
+                    <span>네이버 블로그 및 방문 후기 요약</span>
+                  </div>
+                  <h3 style="font-size:18px;font-weight:700;">${esc(s.name)}</h3>
+                </div>
+                <button type="button" id="closeDrawerBtn" class="icon-btn" aria-label="후기 닫기">✕</button>
+              </div>
+              <div class="modal-body">
+                <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                  <a href="${blogUrl}" target="_blank" rel="noopener noreferrer" class="btn-blog" style="flex:1;justify-content:center;padding:10px 14px;">네이버 블로그 실시간 후기 보기 ↗</a>
+                  <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="font-size:12px;">네이버 플레이스 ↗</a>
+                </div>
+
+                <div>
+                  <h4 style="font-size:12px;font-weight:600;color:var(--ink-muted);margin-bottom:6px;">방문객 후기 핵심 요약</h4>
+                  <p style="font-size:14px;color:var(--ink-primary);background:var(--bg-canvas);border:1px solid var(--border-hairline);border-radius:8px;padding:14px;line-height:1.65;">
+                    ${esc(s.description)}
+                  </p>
+                </div>
+
+                <div>
+                  <h4 style="font-size:12px;font-weight:600;color:var(--ink-muted);margin-bottom:8px;">자주 언급되는 장점</h4>
+                  <div class="stack-lg" style="gap:8px;">
+                    ${(s.pros || []).map((pro, i) => `
+                      <div style="display:flex;gap:10px;font-size:13px;color:var(--ink-secondary);">
+                        <span class="tabular-nums" style="color:var(--accent-blue);font-weight:600;">0${i + 1}</span>
+                        <span>${esc(pro)}</span>
+                      </div>
+                    `).join("")}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 style="font-size:12px;font-weight:600;color:var(--ink-muted);margin-bottom:8px;">추천 메뉴 및 포토 스팟</h4>
+                  <ul style="margin:0;padding-left:18px;font-size:13px;color:var(--ink-secondary);">
+                    ${(s.recItems || []).map((item) => `<li style="margin-bottom:4px;">${esc(item)}</li>`).join("")}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 style="font-size:12px;font-weight:600;color:var(--ink-muted);margin-bottom:8px;">웨이팅 · 방문 팁</h4>
+                  <div style="font-size:13px;color:#78350f;background:var(--accent-amber-soft);border:1px solid #fde68a;border-radius:8px;padding:14px;">
+                    ! ${esc(s.tip || "방문 전 영업시간과 휴무일을 확인하는 것을 권장합니다.")}
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        `;
+
+        document.getElementById("closeDrawerBtn").addEventListener("click", () => {
+          state.reviewStop = null;
+          renderDrawer();
+        });
+        document.getElementById("drawerBackdrop").addEventListener("click", (e) => {
+          if (e.target.id === "drawerBackdrop") {
+            state.reviewStop = null;
+            renderDrawer();
+          }
+        });
+      }
+
+      // Global Topbar & Keyboard Events
+      document.getElementById("brandBtn").addEventListener("click", () => {
+        state.step = "preferences";
+        render();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+
+      document.getElementById("resetTopBtn").addEventListener("click", () => {
+        state.step = "preferences";
+        render();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+
+      document.querySelectorAll("[data-nav]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const target = btn.getAttribute("data-nav");
+          if (target === "essentials") {
+            if (!state.plan) return;
+            state.step = "itinerary";
+            render();
+            const el = document.getElementById("travelEssentials");
+            if (el) el.scrollIntoView({ behavior: "smooth" });
+            return;
+          }
+          if (target === "recommendations" && !state.recommendations.length) return;
+          if (target === "itinerary" && !state.plan) return;
+          state.step = target;
+          render();
+        });
+      });
+
+      document.querySelectorAll("[data-step]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const target = btn.getAttribute("data-step");
+          if (target === "recommendations" && !state.recommendations.length) return;
+          if (target === "itinerary" && !state.plan) return;
+          state.step = target;
+          render();
+        });
+      });
+
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          let changed = false;
+          if (state.reviewStop) { state.reviewStop = null; changed = true; }
+          if (state.addModalOpen) { state.addModalOpen = false; changed = true; }
+          if (changed) { renderModal(); renderDrawer(); }
+        }
+      });
+
+      const downloadBtn = document.getElementById("downloadHtmlBtn");
+      if (downloadBtn) {
+        downloadBtn.addEventListener("click", () => {
+          const htmlContent = PRISTINE_HTML_SNAPSHOT || ("<!doctype html>\n" + document.documentElement.outerHTML);
+          const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "index.html";
+          a.style.display = "none";
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 1500);
+          const originalLabel = "index.html 다운로드";
+          downloadBtn.textContent = "다운로드 완료 ✓";
+          setTimeout(() => {
+            downloadBtn.textContent = originalLabel;
+          }, 2000);
+        });
+      }
+
+      render();
+    })();
+  </script></body></html>
